@@ -8,15 +8,14 @@ const InvoiceTicket = forwardRef(({
   total, 
   billNo, 
   payMethod, 
-  cash, 
-  upi,
+  cash = 0, // Default to 0 if not provided
+  upi = 0,  // Default to 0 if not provided
   custName,
   custPhone,
   pointsBalance = 0,
   pointsEarned = 0,
   redeemUsed = false
 }, ref) => {
-  // Calculate savings: (MRP - SalePrice) * Qty + Overall Discount
   const totalSavings = cart.reduce((acc, item) => {
     const mrp = Number(item.mrp || item.salePrice || 0);
     const price = Number(item.salePrice || 0);
@@ -24,8 +23,6 @@ const InvoiceTicket = forwardRef(({
   }, 0) + Number(discount || 0);
 
   const finalPointsBalance = Number(pointsBalance) + Number(pointsEarned) - (redeemUsed ? 100 : 0);
-
-  // Check if customer info actually exists
   const hasCustomer = custPhone && custPhone !== "N/A" && custPhone !== "";
 
   return (
@@ -68,7 +65,6 @@ const InvoiceTicket = forwardRef(({
          <div>TIME:{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
       </div>
 
-      {/* --- CONDITIONAL CUSTOMER SECTION --- */}
       {hasCustomer && (
         <>
           <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
@@ -125,9 +121,21 @@ const InvoiceTicket = forwardRef(({
       </div>
 
       <div style={{ borderBottom: '1px dashed #000', margin: '6px 0' }}></div>
-      <div style={{ fontSize: '10px', fontWeight: '900' }}>MODE: {payMethod?.toUpperCase()}</div>
+      <div style={{ fontSize: '10px', fontWeight: '900' }}>
+        <div>MODE: {payMethod?.toUpperCase()}</div>
+        {/* --- SPLIT METHOD FIX --- */}
+        {payMethod === "SPLIT" && (
+          <div style={{ marginTop: '3px', borderLeft: '3px solid #000', paddingLeft: '5px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>CASH:</span><span>₹{Number(cash).toFixed(2)}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>UPI:</span><span>₹{Number(upi).toFixed(2)}</span>
+            </div>
+          </div>
+        )}
+      </div>
 
-      {/* --- CONDITIONAL POINTS SECTION --- */}
       {hasCustomer && (
         <>
           <div style={{ borderBottom: '1px dashed #000', margin: '6px 0' }}></div>

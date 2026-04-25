@@ -417,3 +417,48 @@
   font-weight: 800;
 }
 
+.filterBar {
+  display: flex;
+  align-items: flex-end;
+  gap: 15px;
+  background: white;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 20px;
+}
+
+.dateGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.dateGroup label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.dateGroup input {
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  outline: none;
+}
+
+.resetBtn {
+  padding: 10px 15px;
+  background: #f1f5f9;
+  border: none;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #475569;
+}
+
+.resetBtn:hover {
+  background: #e2e8f0;
+}

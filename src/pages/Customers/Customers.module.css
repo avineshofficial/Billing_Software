@@ -1,0 +1,74 @@
+.container { padding: 30px; max-width: 1200px; margin: 0 auto; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+.header h1 { font-size: 26px; color: #0f172a; font-weight: 800; display: flex; align-items: center; gap: 12px; }
+
+.searchBox {
+  display: flex; align-items: center; background: white; border: 1px solid #e2e8f0;
+  border-radius: 10px; padding: 10px 16px; width: 100%; max-width: 400px;
+}
+.searchBox input { border: none; outline: none; width: 100%; margin-left: 10px; font-size: 14px; }
+
+.tableWrapper {
+  background: white; border-radius: 12px; border: 1px solid #e2e8f0;
+  overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+}
+.custTable { width: 100%; border-collapse: collapse; text-align: left; }
+.custTable th { background: #0f172a; color: white; padding: 15px; font-size: 11px; text-transform: uppercase; }
+.custTable td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #1e293b; }
+
+.pointsBadge {
+  background: #ecfdf5; color: #065f46; padding: 4px 10px; border-radius: 20px;
+  font-weight: 700; font-size: 12px;
+}
+
+.deleteBtn { background: none; border: none; color: #cbd5e1; cursor: pointer; transition: 0.2s; }
+.deleteBtn:hover { color: #ef4444; }
+.addForm {
+  display: flex;
+  gap: 15px;
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 25px;
+  align-items: flex-end;
+}
+
+.inputBox {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+
+.inputBox label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; }
+.inputBox input { padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; outline: none; }
+
+.btnAdd {
+  background: #0f172a;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.searchBarContainer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+  color: #94a3b8;
+}
+
+.searchBarContainer input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 14px;
+  width: 100%;
+}

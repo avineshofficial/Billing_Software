@@ -12,6 +12,7 @@ import AddProduct from './pages/Admin/AddProduct';
 import BulkAdd from './pages/Admin/BulkAdd';
 import Reports from './pages/Reports/Reports';
 import Logs from './pages/Logs/Logs';
+import Customers from './pages/Customers/Customers';
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
 
               {/* --- SECURE ROUTES (Login Card will show here) --- */}
               <Route element={<ProtectedRoute />}>
+              <Route path="customers" element={<Customers />} />
                 <Route path="logs" element={<Logs />} />
                 <Route path="admin" element={<Inventory />} />
                 <Route path="admin/add-product" element={<AddProduct />} />

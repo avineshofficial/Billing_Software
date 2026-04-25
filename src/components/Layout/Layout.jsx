@@ -22,7 +22,7 @@ const Layout = () => {
     <div className={styles.layoutWrapper}>
       <header className={styles.header}>
         <div className={styles.logo}>
-          Swift<span>POS</span>
+          நெருங்கிய <span>கூட்டாளி</span>
         </div>
 
         <nav className={styles.nav}>
@@ -35,6 +35,7 @@ const Layout = () => {
 >
   LOGS
 </NavLink>
+<NavLink to="/customers" className={({ isActive }) => isActive ? `${styles.navLink} ${styles.activeLink}` : styles.navLink}>CUSTOMERS</NavLink>
 </nav>
 
         <div className={styles.userSection}>
