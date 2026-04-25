@@ -1,0 +1,212 @@
+/* src/components/Layout/Layout.module.css */
+.layoutWrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--bg-card);
+  border-bottom: 1px solid var(--border-light);
+  padding: 0 24px;
+  height: 64px;
+}
+
+.logo {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  letter-spacing: -0.5px;
+}
+
+.logo span {
+  font-weight: 500;
+}
+
+.nav {
+  display: flex;
+  gap: 32px;
+  height: 100%;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 0 4px;
+  border-bottom: 3px solid transparent; /* Placeholder for active underline */
+  margin-top: 3px; /* To visually center since border-bottom adds height */
+  transition: color 0.2s ease;
+}
+
+.navLink:hover {
+  color: var(--primary-dark);
+}
+
+.activeLink {
+  color: var(--primary-dark);
+  border-bottom: 3px solid var(--primary-dark);
+}
+
+.userSection {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.userDetails {
+  display: flex;
+  flex-direction: column;
+  text-align: right;
+}
+
+.userName {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  text-transform: uppercase;
+}
+
+.userRole {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.logoutBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: transparent;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary-dark);
+  transition: background-color 0.2s ease;
+}
+
+.logoutBtn:hover {
+  background-color: #f1f5f9;
+}
+
+.mainContent {
+  flex: 1;
+  background-color: var(--bg-main);
+  /* Pages will handle their own inner padding */
+}
+/* src/components/Layout/Layout.module.css */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  padding: 0 30px;
+  height: 70px;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.nav {
+  display: flex;
+  gap: 40px;
+  height: 100%;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 700;
+  color: #64748b; /* Muted gray */
+  letter-spacing: 0.5px;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.activeLink {
+  color: #0f172a !important; /* Dark Navy */
+  border-bottom: 3px solid #0f172a;
+}
+
+.navLink:hover {
+  color: #0f172a;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 40px;
+  height: 70px;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+}
+
+.logo {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -1px;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 35px;
+  /* This ensures the links stay together in the middle */
+}
+
+.navLink {
+  text-decoration: none !important; /* Removes blue underline */
+  color: #64748b;
+  font-weight: 700;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 8px 0;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.navLink:hover {
+  color: #0f172a;
+}
+
+.activeLink {
+  color: #0f172a !important;
+  border-bottom: 3px solid #0f172a !important;
+}
+
+.userSection {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.userDetails { text-align: right; }
+.userName { display: block; font-size: 13px; font-weight: 800; color: #0f172a; }
+.userRole { font-size: 11px; color: #94a3b8; }
+
+.logoutBtn {
+  background: white;
+  border: 1px solid #e2e8f0;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}

@@ -1,0 +1,46 @@
+/* src/assets/global.css */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  /* SwiftPOS Color Palette based on images */
+  --bg-main: #f8fafc;
+  --bg-card: #ffffff;
+  --primary-dark: #0f172a; /* The dark navy used in headers/buttons */
+  --primary-teal: #2dd4bf; /* Teal accent (used in process payment) */
+  --text-main: #1e293b;
+  --text-muted: #64748b;
+  --border-light: #e2e8f0;
+  --input-bg: #f8fafc;
+  --danger: #ef4444;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+  border: none;
+}
+
+input {
+  font-family: inherit;
+}
+
+/* Add to bottom of src/assets/global.css */
+#root {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}

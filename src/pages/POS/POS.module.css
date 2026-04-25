@@ -1,0 +1,543 @@
+.posContainer {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  height: calc(100vh - 64px);
+  overflow: hidden;
+  background-color: #f8fafc;
+}
+
+.leftPanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+.searchBar {
+  display: flex;
+  align-items: center;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.searchBar input {
+  border: none;
+  outline: none;
+  width: 100%;
+  margin-left: 10px;
+  font-size: 14px;
+}
+
+/* --- ADDED: Custom Item Row CSS --- */
+.customItemRow {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  background: white;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.inputGroup label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+}
+
+.inputGroup input {
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.nameInput { flex: 1; }
+.amountInput { width: 120px; }
+
+.addBtn {
+  background: #0f172a;
+  color: white;
+  padding: 10px 24px;
+  border-radius: 6px;
+  font-weight: 700;
+  height: 41px;
+}
+
+.itemsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.itemCard {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  position: relative;
+  cursor: pointer;
+}
+
+.addedBadge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #0f172a;
+  color: white;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.categoryBadge {
+  background: #e0e7ff;
+  color: #3730a3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.itemName { margin: 8px 0; font-size: 15px; font-weight: 700; }
+
+.priceRow { display: flex; align-items: baseline; gap: 8px; font-weight: 800; }
+.mrpPrice { font-size: 11px; color: #94a3b8; font-weight: normal; text-decoration: line-through; }
+
+.stockGst {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-size: 11px;
+  color: #64748b;
+}
+
+/* --- RIGHT PANEL --- */
+.rightPanel {
+  width: 380px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.loyaltyCard { padding: 16px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; }
+.loyaltyHeader { font-size: 12px; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px; }
+.loyaltyInput { display: flex; gap: 8px; margin-top: 10px; }
+.loyaltyInput input { flex: 1; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; }
+.loyaltyInput button { padding: 10px; background: #e2e8f0; border-radius: 6px; }
+
+.fullInput { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 14px; margin-top: 8px; }
+
+.cartHeader { padding: 12px 16px; display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #64748b; }
+.clearBtn { cursor: pointer; color: #ef4444; }
+
+.cartList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 16px;
+}
+
+.cartItemCard { border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 10px; background: white; }
+.cartItemActions { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+.qtyBox { display: flex; border: 1px solid #e2e8f0; border-radius: 4px; overflow: hidden; }
+.qtyBox button { padding: 2px 12px; background: #f8fafc; border: none; cursor: pointer; }
+.qtyBox span { padding: 2px 10px; background: white; font-weight: 700; font-size: 13px; }
+
+.discBox { display: flex; flex-direction: column; font-size: 9px; font-weight: 800; align-items: center; }
+.discBox input { width: 50px; border: 1px solid #e2e8f0; text-align: center; border-radius: 4px; padding: 2px; margin-top: 2px; }
+
+.paymentFooter { border-top: 1px solid #e2e8f0; background: white; }
+
+.collapsibleHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  cursor: pointer;
+  background: #f8fafc;
+}
+
+.collapsibleHeader strong { font-size: 18px; color: #0f172a; }
+
+.footerContent {
+  padding: 0 16px;
+  max-height: 0;
+  overflow: hidden;
+  transition: all 0.3s ease-out;
+}
+
+.expandedContent {
+  max-height: 500px;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.arrowIcon { transition: transform 0.3s; color: #64748b; }
+.arrowRotate { transform: rotate(180deg); }
+
+.totalRow { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; color: #475569; }
+
+.balanceBox { background: #f8fafc; padding: 12px; border-radius: 8px; margin: 12px 0; border: 1px solid #e2e8f0; }
+.balanceResult { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; border-top: 1px dashed #cbd5e1; padding-top: 8px; }
+
+.splitBreakdown { background: #f1f5f9; padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #e2e8f0; }
+.splitBreakdown p { font-size: 10px; font-weight: 800; margin-bottom: 8px; color: #1e293b; text-transform: uppercase; }
+.splitInputs { display: flex; gap: 10px; }
+.remaining { font-size: 12px; font-weight: 700; margin-top: 10px; border-top: 1px dashed #cbd5e1; padding-top: 8px; }
+.remaining span { color: #10b981; float: right; }
+
+.paymentModes { display: flex; gap: 8px; margin: 12px 0; }
+.paymentModes button { flex: 1; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 11px; font-weight: 700; display: flex; flex-direction: column; align-items: center; gap: 5px; background: white; cursor: pointer; }
+.paymentModes button.active { background: #0f172a; color: white; border-color: #0f172a; }
+
+.actionArea { padding: 12px 16px; border-top: 1px solid #e2e8f0; }
+.processBtn { width: 100%; padding: 14px; background: #2dd4bf; color: white; border-radius: 8px; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 10px; border: none; cursor: pointer; }
+.processBtn:disabled { background: #94a3b8; cursor: not-allowed; }
+
+/* ... keep your existing styles ... */
+
+.rightPanel {
+  width: 380px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.loyaltyInfoBox {
+  margin-top: 10px;
+  padding: 10px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.redeemBtn {
+  margin-top: 8px;
+  width: 100%;
+  padding: 6px;
+  background: #0f172a;
+  color: white;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.redeemedBadge {
+  background: #10b981;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+}
+
+/* FIX FOR SPLIT OVERFLOW */
+.splitInputs {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+.splitInputs .inputGroup {
+  flex: 1; /* Ensures they share space equally */
+  min-width: 0; /* Prevents text overflow */
+}
+.splitInputs input {
+  width: 100% !important;
+}
+
+.summarySection {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed #e2e8f0;
+}
+.posContainer {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  height: calc(100vh - 64px);
+  overflow: hidden;
+  background-color: #f8fafc;
+}
+
+/* --- LEFT PANEL --- */
+.leftPanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+.searchBar {
+  display: flex;
+  align-items: center;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.searchBar input {
+  border: none;
+  outline: none;
+  width: 100%;
+  margin-left: 10px;
+  font-size: 14px;
+}
+
+/* --- FIX: Custom Item Row Alignment --- */
+.customItemRow {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  background: white;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.inputGroup label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+}
+
+.inputGroup input {
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  width: 100%;
+}
+
+.addBtn {
+  background: #0f172a;
+  color: white;
+  padding: 0 24px;
+  border-radius: 6px;
+  font-weight: 700;
+  height: 41px;
+  border: none;
+  cursor: pointer;
+}
+
+.itemsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.itemCard {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  position: relative;
+  cursor: pointer;
+}
+
+.addedBadge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #0f172a;
+  color: white;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.categoryBadge {
+  background: #e0e7ff;
+  color: #3730a3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.itemName { margin: 8px 0; font-size: 15px; font-weight: 700; }
+.priceRow { display: flex; align-items: baseline; gap: 8px; font-weight: 800; }
+.mrpPrice { font-size: 11px; color: #94a3b8; font-weight: normal; text-decoration: line-through; }
+.stockGst { display: flex; justify-content: space-between; margin-top: 10px; font-size: 11px; color: #64748b; }
+
+/* --- RIGHT PANEL --- */
+.rightPanel {
+  width: 380px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.loyaltyCard { padding: 16px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; }
+.loyaltyHeader { font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.loyaltyInput { display: flex; gap: 8px; }
+.fullInput { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 14px; margin-top: 8px; }
+
+.cartList { flex: 1; overflow-y: auto; padding: 10px 16px; }
+.cartItemCard { border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 10px; background: white; }
+.cartItemActions { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+.qtyBox { display: flex; border: 1px solid #e2e8f0; border-radius: 4px; overflow: hidden; }
+.qtyBox button { padding: 2px 10px; background: #f8fafc; border: none; cursor: pointer; }
+.qtyBox span { padding: 2px 8px; background: white; font-weight: 700; min-width: 25px; text-align: center; }
+
+/* --- FOOTER & COLLAPSIBLE --- */
+.paymentFooter { border-top: 1px solid #e2e8f0; background: white; }
+.collapsibleHeader { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; cursor: pointer; background: #f8fafc; }
+.footerContent { padding: 0 16px; max-height: 0; overflow: hidden; transition: all 0.3s ease-out; }
+.expandedContent { max-height: 600px; padding: 16px; overflow-y: auto; }
+.summarySection { border-bottom: 1px dashed #e2e8f0; padding-bottom: 10px; margin-bottom: 10px; }
+.totalRow { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; color: #475569; }
+
+.balanceBox { background: #f8fafc; padding: 12px; border-radius: 8px; margin: 12px 0; border: 1px solid #e2e8f0; }
+
+/* --- FIX: Split Breakdown Overflow --- */
+.splitBreakdown { background: #f1f5f9; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 12px; }
+.splitInputs { display: flex; gap: 8px; width: 100%; }
+.splitInputs .inputGroup { flex: 1; min-width: 0; }
+.splitInputs input { width: 100%; padding: 6px; font-size: 13px; border-radius: 4px; border: 1px solid #cbd5e1; }
+
+.paymentModes { display: flex; gap: 8px; margin-top: 12px; }
+.paymentModes button { flex: 1; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 11px; font-weight: 700; background: white; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.paymentModes button.active { background: #0f172a; color: white; border-color: #0f172a; }
+
+.processBtn { width: 100%; padding: 14px; background: #2dd4bf; color: white; border-radius: 8px; font-weight: 800; font-size: 14px; border: none; cursor: pointer; margin-top: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.rightPanel {
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* Fill the container */
+  overflow: hidden; /* Prevent the WHOLE panel from scrolling */
+}
+
+.cartList {
+  flex: 1; /* Allow the cart list to take up available space */
+  overflow-y: auto; /* Cart list scrolls if long */
+}
+
+.expandedContent {
+  max-height: 450px; /* Constrain the height of the footer details */
+  overflow-y: auto; /* Scroll internally if split breakdown is too big */
+  padding: 16px;
+}
+
+.actionArea {
+  position: sticky;
+  bottom: 0;
+  background: white;
+  padding: 12px 16px;
+  border-top: 1px solid #e2e8f0;
+  z-index: 10;
+}
+/* Reduced text and padding for Net Pay area */
+.totalRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px; /* Reduced from 13px */
+  margin-bottom: 2px; /* Reduced from 4px */
+  color: #475569;
+}
+
+.summarySection {
+  border-bottom: 1px dashed #e2e8f0;
+  padding-bottom: 6px; /* Reduced */
+  margin-bottom: 6px; /* Reduced */
+}
+
+.balanceBox {
+  background: #f8fafc;
+  padding: 8px; /* Reduced from 12px */
+  border-radius: 8px;
+  margin: 8px 0; /* Reduced from 12px */
+  border: 1px solid #e2e8f0;
+}
+
+.inputGroup label {
+  font-size: 9px; /* Reduced */
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+}
+
+.inputGroup input {
+  padding: 6px; /* Reduced from 10px */
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 12px; /* Reduced */
+}
+
+.paymentModes button {
+  flex: 1;
+  padding: 6px; /* Reduced from 10px */
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 10px; /* Reduced from 11px */
+  font-weight: 700;
+  background: white;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Fix for Split stuck issue / UI blocking */
+.actionArea {
+  position: relative;
+  z-index: 100; /* Ensure button is always clickable */
+  background: white;
+  padding: 12px 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.expandedContent {
+  max-height: 400px; /* Reduced to fit screen better */
+  overflow-y: auto;
+  padding: 12px 16px;
+}
+
+/* Logic for payment mode colors */
+.paymentModes button.active {
+  background: #0f172a;
+  color: white;
+  border-color: #0f172a;
+}
