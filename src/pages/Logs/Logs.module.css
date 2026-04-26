@@ -1,0 +1,76 @@
+.container { padding: 30px; max-width: 1400px; margin: 0 auto; }
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 25px;
+}
+
+.title { font-size: 26px; color: #0f172a; font-weight: 800; display: flex; align-items: center; gap: 12px; }
+.subtitle { color: #64748b; font-size: 14px; margin-top: 5px; }
+
+.clearAllBtn {
+  background: #fff1f2;
+  color: #e11d48;
+  border: 1px solid #fecdd3;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.tableWrapper {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+}
+
+.logTable { width: 100%; border-collapse: collapse; }
+.logTable th {
+  background: #0f172a;
+  color: white;
+  padding: 15px;
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.logTable td { padding: 15px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+
+.timeCell .logId { font-family: monospace; font-weight: 700; color: #0f172a; font-size: 12px; }
+.timestamp { font-size: 11px; color: #94a3b8; display: flex; align-items: center; gap: 4px; margin-top: 3px; }
+
+.userCell { font-weight: 700; color: #1e293b; font-size: 13px; }
+.fullEmail { font-weight: 400; color: #94a3b8; font-size: 11px; }
+
+.actionBadge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 900;
+  display: inline-block;
+}
+
+.detailsCell { font-size: 13px; color: #475569; max-width: 400px; }
+
+.deleteRowBtn {
+  background: none;
+  border: none;
+  color: #cbd5e1;
+  cursor: pointer;
+  padding: 8px;
+  transition: color 0.2s;
+}
+
+.deleteRowBtn:hover { color: #e11d48; }
+
+.loadingTd { text-align: center; padding: 50px; color: #94a3b8; font-style: italic; }
+
