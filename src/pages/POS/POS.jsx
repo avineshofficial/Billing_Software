@@ -16,36 +16,41 @@ import styles from './POS.module.css';
 
 const POS = () => {
   const componentRef = useRef(); 
-  const[dbProducts, setDbProducts] = useState([]);
+  const [dbProducts, setDbProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [paymentMode, setPaymentMode] = useState('CASH'); 
-  const[amtReceived, setAmtReceived] = useState('');
+  const [amtReceived, setAmtReceived] = useState('');
   const [splitCash, setSplitCash] = useState('');
-  const[splitUpi, setSplitUpi] = useState('');
+  const [splitUpi, setSplitUpi] = useState('');
   const [showDetails, setShowDetails] = useState(true);
   
-  const[billNoForPrinting, setBillNoForPrinting] = useState('');
+  // State for the ticket to read the ID
+  const [billNoForPrinting, setBillNoForPrinting] = useState('');
 
+  // Loyalty States
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerName, setCustomerName] = useState('');
-  const[customerData, setCustomerData] = useState(null);
+  const [customerData, setCustomerData] = useState(null);
   const [redeemApplied, setRedeemApplied] = useState(false);
 
+  // Custom Item States
   const [customName, setCustomName] = useState('');
-  const[customAmount, setCustomAmount] = useState('');
+  const [customAmount, setCustomAmount] = useState('');
 
   const { 
     cart, addToCart, updateQuantity, updateItemDiscount, removeFromCart, clearCart, 
     subtotal, gstTotal, discount, netPay 
   } = useContext(CartContext);
 
+  // 1. Fetch Products
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
       setDbProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    }, (err) => console.log("Public product sync active."));
+    }, (err) => console.log("Product sync active."));
     return () => unsubscribe();
-  },[]);
+  }, []);
 
+  // 2. Loyalty Search
   const searchCustomer = async () => {
     if(!customerPhone) return;
     setRedeemApplied(false);
@@ -77,51 +82,36 @@ const POS = () => {
     setCustomName(''); setCustomAmount('');
   };
 
+  // Logic: Earn 2 points if bill > ₹300
   const earnedPoints = netPay >= 300 ? 2 : 0;
   const finalNetPay = Number(redeemApplied ? (netPay - 100) : netPay); 
   const totalSavings = cart.reduce((acc, item) => acc + ((Number(item.mrp || 0) - Number(item.salePrice || 0)) * item.qty), 0) + discount + (redeemApplied ? 100 : 0);
 
+  // 3. Printing Setup
   const handlePrint = useReactToPrint({
     contentRef: componentRef,
-    onAfterPrint: () => {
-        clearCart(); setCustomerPhone(''); setCustomerName(''); setCustomerData(null); 
-        setAmtReceived(''); setSplitCash(''); setSplitUpi(''); setRedeemApplied(false); setBillNoForPrinting('');
-    },
   });
 
-  const fetchBills = async () => {
-  setLoading(true);
-  try {
-    const q = query(collection(db, 'bills'), orderBy('timestamp', 'desc'));
-    // getDocs() fetches the data ONCE. It does NOT listen for changes.
-    const snapshot = await getDocs(q); 
-    setBills(snapshot.docs.map(doc => ({
-      // ...data mapping
-    })));
-  } catch (e) {
-    console.error(e);
-  }
-  setLoading(false);
-};
-
-// This useEffect runs only one time when the page first opens.
-// It will NOT run again automatically to get new sales.
-useEffect(() => {
-  fetchBills();
-}, []);
-
+  // 4. THE MASTER FUNCTION (Save to DB, then Print. DO NOT CLEAR CART)
   const handleProcessPayment = async () => {
     if (cart.length === 0) return;
-    if (paymentMode === 'SPLIT' && (Number(splitCash) + Number(splitUpi)).toFixed(2) !== finalNetPay.toFixed(2)) {
-        alert(`Split mismatch: Entered ₹${(Number(splitCash) + Number(splitUpi))}, Expected ₹${finalNetPay.toFixed(2)}`);
-        return;
+
+    // A. Validation
+    if (paymentMode === 'SPLIT') {
+        const totalEntered = Number(splitCash) + Number(splitUpi);
+        if (totalEntered.toFixed(2) !== finalNetPay.toFixed(2)) {
+            alert(`Split mismatch: Entered ₹${totalEntered}, Expected ₹${finalNetPay.toFixed(2)}`);
+            return;
+        }
     }
 
+    // B. Generate Bill ID
     const generatedID = `INV-${Math.floor(100000 + Math.random() * 900000)}`;
 
     try {
       const batch = writeBatch(db);
       
+      // C. Customer Logic
       if (customerPhone && customerPhone.trim() !== "") {
           const custQuery = query(collection(db, 'customers'), where('phone', '==', customerPhone));
           const custSnap = await getDocs(custQuery);
@@ -136,27 +126,32 @@ useEffect(() => {
           }
       }
 
+      // D. Save Bill Record
       const billRef = doc(collection(db, 'bills'));
       batch.set(billRef, {
         billNo: generatedID, items: cart, subtotal: Number(subtotal), gstTotal: Number(gstTotal), 
         discount: Number(discount) + (redeemApplied ? 100 : 0), netPay: Number(finalNetPay), paymentMode, 
-        timestamp: serverTimestamp(),
-        customer: { name: (customerPhone ? (customerName || 'Customer') : 'Guest'), phone: customerPhone || 'N/A' },
+        timestamp: serverTimestamp(), customer: { name: (customerPhone ? (customerName || 'Customer') : 'Guest'), phone: customerPhone || 'N/A' },
         earnedPoints: customerPhone ? Number(earnedPoints) : 0, redeemUsed: redeemApplied
       });
 
+      // E. Update Stock
       cart.forEach(item => {
         if (!item.isCustom) batch.update(doc(db, 'products', item.id), { stock: increment(-Number(item.qty)) });
       });
 
+      // F. Commit to Firestore
       await batch.commit();
-      
+
+      // G. Trigger Print
       setBillNoForPrinting(generatedID);
-      setTimeout(() => { handlePrint(); }, 500);
+      setTimeout(() => {
+          handlePrint();
+      }, 400);
 
     } catch (e) { 
       console.error("FIREBASE FAIL:", e);
-      alert("Database error. Please check internet connection.");
+      alert("Database error: Transaction aborted. Check internet connection.");
     }
   };
 
@@ -171,8 +166,7 @@ useEffect(() => {
     <div className={styles.posContainer}>
       <div className={styles.leftPanel}>
         <div className={styles.searchBar}>
-          <FiSearch size={18} />
-          <input type="text" placeholder="Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          <FiSearch size={18} /><input type="text" placeholder="Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
         
         <div className={styles.customItemRow}>
@@ -227,7 +221,7 @@ useEffect(() => {
           </div>
         </div>
 
-        <div className={styles.cartHeader}>CART ITEMS ({cart.length}) <span className={styles.clearBtn} onClick={clearCart}>CLEAR</span></div>
+        <div className={styles.cartHeader}>CART ITEMS ({cart.length}) <span className={styles.clearBtn} onClick={clearCart}>CLEAR CART</span></div>
         <div className={styles.cartList}>
           {cart.map(item => (
             <div key={item.id} className={styles.cartItemCard}>
@@ -257,7 +251,7 @@ useEffect(() => {
                 <div className={styles.totalRow}><span>Discounts</span><span>- ₹{(discount + (redeemApplied ? 100 : 0)).toFixed(2)}</span></div>
             </div>
             <div className={styles.balanceBox}>
-              <div className={styles.inputGroup}><label style={{fontSize: '9px'}}>AMT RECEIVED</label>
+              <div className={styles.inputGroup}><label style={{fontSize: '9px'}}>AMT RECEIVED (₹)</label>
                 <input type="number" placeholder="Enter cash..." value={amtReceived} onChange={(e) => setAmtReceived(e.target.value)} />
               </div>
               <div className={styles.balanceResult}><label style={{fontSize: '9px'}}>CHANGE</label><strong style={{color:'#10b981', fontSize: '14px'}}>₹{(Number(amtReceived) - finalNetPay).toFixed(2)}</strong></div>
@@ -269,6 +263,7 @@ useEffect(() => {
                   <div className={styles.inputGroup}><label>CASH</label><input type="number" value={splitCash} onChange={(e)=>setSplitCash(e.target.value)}/></div>
                   <div className={styles.inputGroup}><label>UPI</label><input type="number" value={splitUpi} onChange={(e)=>setSplitUpi(e.target.value)}/></div>
                 </div>
+                <div className={styles.remaining}>REMAINING: <span>₹{(finalNetPay - (Number(splitCash)+Number(splitUpi))).toFixed(2)}</span></div>
               </div>
             )}
 

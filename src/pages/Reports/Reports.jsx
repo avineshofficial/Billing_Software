@@ -2,12 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { 
   FiActivity, FiClock, FiSearch, FiCheckCircle, FiEye, 
-  FiX, FiPrinter, FiMinus, FiPlus, FiCalendar, FiDownload, FiTrash2, FiFilter 
+  FiX, FiPrinter, FiMinus, FiPlus, FiCalendar, FiDownload 
 } from 'react-icons/fi';
 import { db } from '../../services/firebase';
 import { 
   collection, onSnapshot, query, orderBy, doc, 
-  writeBatch, increment, serverTimestamp 
+  writeBatch, increment, serverTimestamp, deleteDoc 
 } from 'firebase/firestore';
 import { useAuth } from '../../context/AuthContext';
 import { logAction } from '../../utils/logger';
@@ -36,13 +36,44 @@ const Reports = () => {
       setBills(snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-        displayBillNo: doc.data().billNo || doc.data().billNumber || doc.id.slice(-6).toUpperCase(),
+        displayBillNo: doc.data().billNo || doc.id.slice(-6).toUpperCase(),
         dateObj: doc.data().timestamp?.toDate() || new Date()
       })));
       setLoading(false);
     });
     return () => unsubscribe();
   }, []);
+
+  // --- CSV DOWNLOAD LOGIC ---
+  const exportToCSV = () => {
+    if (filteredBills.length === 0) return alert("No filtered data to export.");
+
+    const headers = ["Date", "Bill No", "Customer Phone", "Payment Mode", "Subtotal", "GST", "Discount", "Net Pay"];
+    
+    // Map the FILTERED bills to CSV rows
+    const rows = filteredBills.map(bill => [
+      `"${bill.dateObj.toLocaleString()}"`,
+      bill.displayBillNo,
+      bill.customer?.phone || "N/A",
+      bill.paymentMode,
+      bill.subtotal.toFixed(2),
+      bill.gstTotal.toFixed(2),
+      bill.discount.toFixed(2),
+      bill.netPay.toFixed(2)
+    ]);
+
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + headers.join(",") + "\n" 
+      + rows.map(e => e.join(",")).join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `SwiftPOS_Report_${new Date().toLocaleDateString()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -76,17 +107,19 @@ const Reports = () => {
       const billRef = doc(db, 'bills', selectedBill.id);
       const original = bills.find(b => b.id === selectedBill.id);
       const finalItems = selectedBill.items.filter(i => i.qty > 0);
+      const operator = currentUser?.email || "Terminal";
 
       if (finalItems.length === 0) {
         if (window.confirm("Delete this bill permanently?")) {
           original.items.forEach(i => { if(!i.isCustom) batch.update(doc(db, 'products', i.id), { stock: increment(i.qty) }); });
           batch.delete(billRef);
           await batch.commit();
-          await logAction(currentUser?.email || "Terminal", "BILL_DELETED", `Deleted Bill #${selectedBill.displayBillNo}`);
+          await logAction(operator, "BILL_DELETED", `Deleted Bill #${selectedBill.displayBillNo}`);
           setSelectedBill(null);
         }
         return;
       }
+
       original.items.forEach(i => { if(!i.isCustom) batch.update(doc(db, 'products', i.id), { stock: increment(i.qty) }); });
       finalItems.forEach(i => { if(!i.isCustom) batch.update(doc(db, 'products', i.id), { stock: increment(-i.qty) }); });
 
@@ -96,41 +129,20 @@ const Reports = () => {
       });
 
       await batch.commit();
-      await logAction(currentUser?.email || "Terminal", "BILL_EDITED", `Updated Bill #${selectedBill.displayBillNo}`);
+      await logAction(operator, "BILL_EDITED", `Modified Bill #${selectedBill.displayBillNo}`);
       setIsEditing(false);
       alert("Bill Updated!");
     } catch (e) { alert("Error updating record."); }
   };
 
-  // --- STATS LOGIC (Always for Today, ignoring date filter) ---
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  const todayEnd = new Date();
-  todayEnd.setHours(23, 59, 59, 999);
-
-  const todayIncome = bills
-    .filter(b => b.dateObj >= todayStart && b.dateObj <= todayEnd)
-    .reduce((s, b) => s + Number(b.netPay || 0), 0);
-  
+  const todayIncome = bills.filter(b => b.dateObj.toDateString() === new Date().toDateString()).reduce((s, b) => s + Number(b.netPay || 0), 0);
   const totalSalesValue = bills.reduce((s, b) => s + Number(b.netPay || 0), 0);
 
-  // --- TABLE FILTER LOGIC ---
   const filteredBills = bills.filter(b => {
-    const matchesSearch = b.displayBillNo.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          (b.customer?.phone && b.customer.phone.includes(searchTerm));
-    
+    const matchesSearch = b.displayBillNo.toLowerCase().includes(searchTerm.toLowerCase()) || (b.customer?.phone && b.customer.phone.includes(searchTerm));
     let matchesDate = true;
-    if (startDate) {
-      const sDate = new Date(startDate);
-      sDate.setHours(0, 0, 0, 0);
-      matchesDate = matchesDate && b.dateObj >= sDate;
-    }
-    if (endDate) {
-      const eDate = new Date(endDate);
-      eDate.setHours(23, 59, 59, 999);
-      matchesDate = matchesDate && b.dateObj <= eDate;
-    }
-
+    if (startDate) matchesDate = matchesDate && b.dateObj >= new Date(new Date(startDate).setHours(0,0,0,0));
+    if (endDate) matchesDate = matchesDate && b.dateObj <= new Date(new Date(endDate).setHours(23,59,59,999));
     return matchesSearch && matchesDate;
   });
 
@@ -148,91 +160,52 @@ const Reports = () => {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1>Financial Reports</h1>
-        <p>Real-time analytics and transaction history management.</p>
-      </div>
-
-      {/* --- INCOME STATEMENT (UNFILTERED) --- */}
-      <div className={styles.cardsGrid}>
-        <div className={styles.card}>
-          <span className={styles.cardLabel}>TODAY'S INCOME</span>
-          <div className={styles.cardValue}>₹{todayIncome.toFixed(2)}</div>
-          <div className={styles.cardSubtext}><FiActivity /> Fixed: Today strictly</div>
-        </div>
-        <div className={styles.card}>
-          <span className={styles.cardLabel}>TOTAL SALES (LIFETIME)</span>
-          <div className={styles.cardValue}>₹{totalSalesValue.toFixed(2)}</div>
-          <div className={styles.cardSubtext}><FiCalendar /> {bills.length} total bills</div>
-        </div>
-        <div className={styles.cardDark}>
-          <span className={styles.cardLabel}>ANNUAL REVENUE</span>
-          <div className={styles.cardValue}>₹{totalSalesValue.toFixed(2)}</div>
-          <div className={styles.cardSubtext}><FiCheckCircle /> Current FY</div>
-        </div>
-      </div>
-
-      {/* --- DATE FILTER BAR --- */}
-      <div className={styles.filterBar}>
-        <div className={styles.dateGroup}>
-          <label>From Date</label>
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-        </div>
-        <div className={styles.dateGroup}>
-          <label>To Date</label>
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-        </div>
-        <div className={styles.searchBox}>
-          <FiSearch />
-          <input placeholder="Bill No or Phone..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-        </div>
-        <button className={styles.resetBtn} onClick={() => {setStartDate(''); setEndDate(''); setSearchTerm('');}}>
-          CLEAR FILTERS
+        <div><h1>Financial Reports</h1><p>Analyze sales and manage transactions.</p></div>
+        {/* --- DOWNLOAD BUTTON --- */}
+        <button className={styles.btnDownload} onClick={exportToCSV}>
+          <FiDownload /> DOWNLOAD FILTERED REPORT
         </button>
       </div>
 
-      {/* --- BILL HISTORY TABLE --- */}
+      <div className={styles.cardsGrid}>
+        <div className={styles.card}><span className={styles.cardLabel}>TODAY'S INCOME</span><div className={styles.cardValue}>₹{todayIncome.toFixed(2)}</div></div>
+        <div className={styles.card}><span className={styles.cardLabel}>TOTAL LIFETIME SALES</span><div className={styles.cardValue}>₹{totalSalesValue.toFixed(2)}</div></div>
+        <div className={styles.cardDark}><span className={styles.cardLabel}>ANNUAL REVENUE</span><div className={styles.cardValue}>₹{totalSalesValue.toFixed(2)}</div></div>
+      </div>
+
+      <div className={styles.filterBar}>
+        <div className={styles.dateGroup}><label>From Date</label><input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
+        <div className={styles.dateGroup}><label>To Date</label><input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></div>
+        <div className={styles.searchBox}><FiSearch /><input placeholder="Bill No or Phone..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
+        <button className={styles.resetBtn} onClick={() => {setStartDate(''); setEndDate(''); setSearchTerm('');}}>CLEAR</button>
+      </div>
+
       <div className={styles.tableWrapper}>
-        <div style={{padding:'15px', borderBottom:'1px solid #eee', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-            <h2 style={{fontSize:'16px'}}><FiClock /> Filtered Bills ({filteredBills.length})</h2>
+        <div style={{padding:'15px', borderBottom:'1px solid #eee'}}>
+            <h2 style={{fontSize:'16px'}}>Filtered Bills ({filteredBills.length})</h2>
         </div>
         <table className={styles.reportTable}>
-          <thead>
-            <tr><th>Date & Time</th><th>Bill No</th><th>Customer</th><th>Amount</th><th>Mode</th><th style={{textAlign:'right'}}>View</th></tr>
-          </thead>
+          <thead><tr><th>Date & Time</th><th>Bill No</th><th>Customer</th><th>Amount</th><th>Mode</th><th style={{textAlign:'right'}}>Action</th></tr></thead>
           <tbody>
-            {loading ? (
-              <tr><td colSpan="6" style={{textAlign:'center', padding:'30px'}}>Loading...</td></tr>
-            ) : filteredBills.map(bill => (
+            {filteredBills.map(bill => (
               <tr key={bill.id}>
                 <td>{bill.dateObj.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</td>
                 <td style={{fontWeight:'800', color: '#0f172a'}}>{bill.displayBillNo}</td>
                 <td>{bill.customer?.phone || "Guest"}</td>
                 <td style={{fontWeight:'800'}}>₹{Number(bill.netPay).toFixed(2)}</td>
                 <td><span className={styles.modeBadge}>{bill.paymentMode}</span></td>
-                <td style={{textAlign:'right'}}>
-                  <FiEye style={{cursor:'pointer', color:'#64748b'}} onClick={() => { setSelectedBill(bill); setIsEditing(false); }} />
-                </td>
+                <td style={{textAlign:'right'}}><FiEye style={{cursor:'pointer', color:'#64748b'}} onClick={() => { setSelectedBill(bill); setIsEditing(false); }} /></td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      {/* --- FLOW CHART --- */}
       <div className={styles.chartCard}>
-        <h3>7-Day Sales Performance (Flow Chart)</h3>
-        <div style={{ height: '320px', width: '100%', minWidth: '0' }}> 
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={getFlowData()} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-              <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
-              <Bar dataKey="sales" fill="#0f172a" radius={[4, 4, 0, 0]} barSize={25} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        <h3>7-Day Sales Performance</h3>
+        <div style={{ height: '320px' }}><ResponsiveContainer width="100%" height="100%"><BarChart data={getFlowData()}><XAxis dataKey="day" tick={{fontSize:12}} /><Tooltip /><Bar dataKey="sales" fill="#0f172a" /></BarChart></ResponsiveContainer></div>
       </div>
 
-      {/* --- EDIT/VIEW MODAL --- */}
       {selectedBill && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
@@ -248,9 +221,7 @@ const Reports = () => {
               ))}
               <div className={styles.modalSummary}>
                  <div className={styles.totalRow}><span>Subtotal:</span><span>₹{selectedBill.subtotal.toFixed(2)}</span></div>
-                 <div className={styles.totalRow} style={{fontSize:'18px', fontWeight:'900', color:'#0f172a', borderTop:'1px solid #eee', marginTop:'10px', paddingTop:'10px'}}>
-                   <span>TOTAL:</span><span>₹{selectedBill.netPay.toFixed(2)}</span>
-                 </div>
+                 <div className={styles.totalRow} style={{fontSize:'18px', fontWeight:'900'}}><span>TOTAL:</span><span>₹{selectedBill.netPay.toFixed(2)}</span></div>
               </div>
             </div>
             <div className={styles.modalFooter}>
@@ -261,10 +232,7 @@ const Reports = () => {
         </div>
       )}
 
-      {/* Printing Logic Container */}
-      <div style={{ display: 'none' }}><div ref={printRef}>
-        {selectedBill && <InvoiceTicket cart={selectedBill.items} subtotal={selectedBill.subtotal} tax={selectedBill.gstTotal} discount={selectedBill.discount} total={selectedBill.netPay} billNo={selectedBill.displayBillNo} payMethod={selectedBill.paymentMode} custName={selectedBill.customer?.name} custPhone={selectedBill.customer?.phone} pointsEarned={0} pointsBalance={0} />}
-      </div></div>
+      <div style={{ display: 'none' }}><div ref={printRef}>{selectedBill && <InvoiceTicket cart={selectedBill.items} subtotal={selectedBill.subtotal} tax={selectedBill.gstTotal} discount={selectedBill.discount} total={selectedBill.netPay} billNo={selectedBill.displayBillNo} payMethod={selectedBill.paymentMode} custName={selectedBill.customer?.name} custPhone={selectedBill.customer?.phone} pointsEarned={0} pointsBalance={0} />}</div></div>
     </div>
   );
 };
