@@ -29,14 +29,11 @@ const Layout = () => {
   <NavLink to="/" className={({ isActive }) => isActive ? `${styles.navLink} ${styles.activeLink}` : styles.navLink}>POS</NavLink>
   <NavLink to="/reports" className={({ isActive }) => isActive ? `${styles.navLink} ${styles.activeLink}` : styles.navLink}>REPORTS</NavLink>
   <NavLink to="/admin" className={({ isActive }) => isActive ? `${styles.navLink} ${styles.activeLink}` : styles.navLink}>ADMIN</NavLink>
-  <NavLink 
-  to="/logs" 
-  className={({ isActive }) => isActive ? `${styles.navLink} ${styles.activeLink}` : styles.navLink}
->
-  LOGS
-</NavLink>
-<NavLink to="/customers" className={({ isActive }) => isActive ? `${styles.navLink} ${styles.activeLink}` : styles.navLink}>CUSTOMERS</NavLink>
-</nav>
+  <NavLink to="/logs" className={({ isActive }) => isActive ? `${styles.navLink} ${styles.activeLink}` : styles.navLink}>LOGS</NavLink>
+  <NavLink to="/customers" className={({ isActive }) => isActive ? `${styles.navLink} ${styles.activeLink}` : styles.navLink}>CUSTOMERS</NavLink>
+  <NavLink to="/employees" className={({ isActive }) => isActive ? `${styles.navLink} ${styles.activeLink}` : styles.navLink}>EMPLOYEES</NavLink>
+  </nav>
+
 
         <div className={styles.userSection}>
           {currentUser ? (

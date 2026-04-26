@@ -14,6 +14,8 @@ import BulkAdd from './pages/Admin/BulkAdd';
 import Reports from './pages/Reports/Reports';
 import Logs from './pages/Logs/Logs';
 import Customers from './pages/Customers/Customers';
+import Employees from './pages/Employees/Employees';
+import SalaryDetails from './pages/Employees/SalaryDetails';
 
 function App() {
   return (
@@ -32,6 +34,8 @@ function App() {
               <Route path="customers" element={<Customers />} />
                 <Route path="logs" element={<Logs />} />
                 <Route path="admin" element={<Inventory />} />
+                <Route path="employees" element={<Employees />} />
+                <Route path="employees/:id" element={<SalaryDetails />} />
                 <Route path="admin/importer" element={<JsonImporter />} />
                 <Route path="admin/add-product" element={<AddProduct />} />
                 <Route path="admin/edit-product/:id" element={<AddProduct />} />
