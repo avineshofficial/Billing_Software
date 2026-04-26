@@ -104,10 +104,6 @@ const Inventory = () => {
 
       <div className={styles.statsGrid}>
         <div className={styles.statCard}>
-          <div className={styles.statLabel}>Total Stock Value</div>
-          <div className={styles.statValue}>₹{stockValue.toFixed(2)}</div>
-        </div>
-        <div className={styles.statCard}>
           <div className={styles.statLabel}>Total Items</div>
           <div className={styles.statValue}>{products.length}</div>
         </div>
