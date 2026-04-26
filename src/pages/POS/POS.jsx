@@ -24,16 +24,13 @@ const POS = () => {
   const[splitUpi, setSplitUpi] = useState('');
   const [showDetails, setShowDetails] = useState(true);
   
-  // This state is solely for the hidden <InvoiceTicket /> to read
   const[billNoForPrinting, setBillNoForPrinting] = useState('');
 
-  // Loyalty States
-  const[customerPhone, setCustomerPhone] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
   const [customerName, setCustomerName] = useState('');
   const[customerData, setCustomerData] = useState(null);
   const [redeemApplied, setRedeemApplied] = useState(false);
 
-  // Custom Item States
   const [customName, setCustomName] = useState('');
   const[customAmount, setCustomAmount] = useState('');
 
@@ -42,7 +39,6 @@ const POS = () => {
     subtotal, gstTotal, discount, netPay 
   } = useContext(CartContext);
 
-  // 1. Fetch Products
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
       setDbProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -50,7 +46,6 @@ const POS = () => {
     return () => unsubscribe();
   },[]);
 
-  // 2. Loyalty Search (Optional manual check)
   const searchCustomer = async () => {
     if(!customerPhone) return;
     setRedeemApplied(false);
@@ -82,100 +77,86 @@ const POS = () => {
     setCustomName(''); setCustomAmount('');
   };
 
-  // Logic: Earn 2 points if bill > ₹300
   const earnedPoints = netPay >= 300 ? 2 : 0;
   const finalNetPay = Number(redeemApplied ? (netPay - 100) : netPay); 
-  const savings = cart.reduce((acc, item) => acc + ((Number(item.mrp || 0) - Number(item.salePrice || 0)) * item.qty), 0) + discount;
+  const totalSavings = cart.reduce((acc, item) => acc + ((Number(item.mrp || 0) - Number(item.salePrice || 0)) * item.qty), 0) + discount + (redeemApplied ? 100 : 0);
 
-  // 3. Printing Setup
   const handlePrint = useReactToPrint({
     contentRef: componentRef,
     onAfterPrint: () => {
-        // Reset POS after print dialog is closed
         clearCart(); setCustomerPhone(''); setCustomerName(''); setCustomerData(null); 
         setAmtReceived(''); setSplitCash(''); setSplitUpi(''); setRedeemApplied(false); setBillNoForPrinting('');
     },
   });
 
-  // 4. THE MASTER FUNCTION (Auto-Saves Customers, Saves DB, then Prints)
+  const fetchBills = async () => {
+  setLoading(true);
+  try {
+    const q = query(collection(db, 'bills'), orderBy('timestamp', 'desc'));
+    // getDocs() fetches the data ONCE. It does NOT listen for changes.
+    const snapshot = await getDocs(q); 
+    setBills(snapshot.docs.map(doc => ({
+      // ...data mapping
+    })));
+  } catch (e) {
+    console.error(e);
+  }
+  setLoading(false);
+};
+
+// This useEffect runs only one time when the page first opens.
+// It will NOT run again automatically to get new sales.
+useEffect(() => {
+  fetchBills();
+}, []);
+
   const handleProcessPayment = async () => {
     if (cart.length === 0) return;
-
-    // A. Validation for Split Mode
-    if (paymentMode === 'SPLIT') {
-        const totalEntered = Number(splitCash) + Number(splitUpi);
-        if (totalEntered.toFixed(2) !== finalNetPay.toFixed(2)) {
-            alert(`Split total mismatch. Entered: ₹${totalEntered}, Expected: ₹${finalNetPay.toFixed(2)}`);
-            return;
-        }
+    if (paymentMode === 'SPLIT' && (Number(splitCash) + Number(splitUpi)).toFixed(2) !== finalNetPay.toFixed(2)) {
+        alert(`Split mismatch: Entered ₹${(Number(splitCash) + Number(splitUpi))}, Expected ₹${finalNetPay.toFixed(2)}`);
+        return;
     }
 
-    // B. Generate Deterministic Bill ID
     const generatedID = `INV-${Math.floor(100000 + Math.random() * 900000)}`;
 
     try {
       const batch = writeBatch(db);
       
-      // C. AUTOMATIC CUSTOMER HANDLING (No "Search" click required)
       if (customerPhone && customerPhone.trim() !== "") {
           const custQuery = query(collection(db, 'customers'), where('phone', '==', customerPhone));
           const custSnap = await getDocs(custQuery);
           
           if (custSnap.empty) {
-              // Automatically CREATE new customer if they typed a phone number not in DB
               const newCustRef = doc(collection(db, "customers"));
-              batch.set(newCustRef, { 
-                name: customerName || "Guest", 
-                phone: customerPhone, 
-                points: Number(earnedPoints), 
-                createdAt: serverTimestamp() 
-              });
+              batch.set(newCustRef, { name: customerName || "Guest", phone: customerPhone, points: Number(earnedPoints), createdAt: serverTimestamp() });
           } else {
-              // Automatically UPDATE points for existing customer
               const existingCustId = custSnap.docs[0].id;
               let pChange = Number(earnedPoints) - (redeemApplied ? 100 : 0);
               batch.update(doc(db, 'customers', existingCustId), { points: increment(pChange) });
           }
       }
 
-      // D. Save Bill Record
       const billRef = doc(collection(db, 'bills'));
       batch.set(billRef, {
-        billNo: generatedID,
-        items: cart, 
-        subtotal: Number(subtotal), 
-        gstTotal: Number(gstTotal), 
-        discount: Number(discount) + (redeemApplied ? 100 : 0), 
-        netPay: Number(finalNetPay), 
-        paymentMode, 
+        billNo: generatedID, items: cart, subtotal: Number(subtotal), gstTotal: Number(gstTotal), 
+        discount: Number(discount) + (redeemApplied ? 100 : 0), netPay: Number(finalNetPay), paymentMode, 
         timestamp: serverTimestamp(),
-        customer: { 
-            name: (customerPhone ? (customerName || 'Customer') : 'Guest'), 
-            phone: customerPhone || 'N/A' 
-        },
-        earnedPoints: customerPhone ? Number(earnedPoints) : 0,
-        redeemUsed: redeemApplied
+        customer: { name: (customerPhone ? (customerName || 'Customer') : 'Guest'), phone: customerPhone || 'N/A' },
+        earnedPoints: customerPhone ? Number(earnedPoints) : 0, redeemUsed: redeemApplied
       });
 
-      // E. Update Stock levels
       cart.forEach(item => {
-        if (!item.isCustom) {
-            batch.update(doc(db, 'products', item.id), { stock: increment(-Number(item.qty)) });
-        }
+        if (!item.isCustom) batch.update(doc(db, 'products', item.id), { stock: increment(-Number(item.qty)) });
       });
 
-      // F. Commit to Firestore
       await batch.commit();
-
-      // G. Trigger Print
+      
       setBillNoForPrinting(generatedID);
-      setTimeout(() => {
-          handlePrint();
-      }, 400);
+      setTimeout(() => { handlePrint(); }, 500);
 
     } catch (e) { 
-      console.error("FIREBASE ERROR:", e);
-      alert("CRITICAL ERROR: Bill could not be saved to database. Check internet connection.");
+      console.error("FIREBASE FAIL:", e);
+      alert("Database error. Please check internet connection.");
     }
   };
 
@@ -275,25 +256,19 @@ const POS = () => {
                 <div className={styles.totalRow}><span>GST Tax</span><span>₹{gstTotal.toFixed(2)}</span></div>
                 <div className={styles.totalRow}><span>Discounts</span><span>- ₹{(discount + (redeemApplied ? 100 : 0)).toFixed(2)}</span></div>
             </div>
-
             <div className={styles.balanceBox}>
-              <div className={styles.inputGroup}><label style={{fontSize: '9px'}}>AMT RECEIVED (₹)</label>
+              <div className={styles.inputGroup}><label style={{fontSize: '9px'}}>AMT RECEIVED</label>
                 <input type="number" placeholder="Enter cash..." value={amtReceived} onChange={(e) => setAmtReceived(e.target.value)} />
               </div>
-              <div className={styles.balanceResult}>
-                <label style={{fontSize: '9px'}}>CHANGE</label>
-                <strong style={{color:'#10b981', fontSize: '14px'}}>₹{balanceAmount}</strong>
-              </div>
+              <div className={styles.balanceResult}><label style={{fontSize: '9px'}}>CHANGE</label><strong style={{color:'#10b981', fontSize: '14px'}}>₹{(Number(amtReceived) - finalNetPay).toFixed(2)}</strong></div>
             </div>
 
             {paymentMode === 'SPLIT' && (
               <div className={styles.splitBreakdown}>
-                <p>SPLIT BREAKDOWN</p>
                 <div className={styles.splitInputs}>
                   <div className={styles.inputGroup}><label>CASH</label><input type="number" value={splitCash} onChange={(e)=>setSplitCash(e.target.value)}/></div>
                   <div className={styles.inputGroup}><label>UPI</label><input type="number" value={splitUpi} onChange={(e)=>setSplitUpi(e.target.value)}/></div>
                 </div>
-                <div className={styles.remaining}>REMAINING: <span>₹{(finalNetPay - (Number(splitCash)+Number(splitUpi))).toFixed(2)}</span></div>
               </div>
             )}
 
@@ -312,12 +287,11 @@ const POS = () => {
         </div>
       </div>
 
-      {/* HIDDEN RECEIPT COMPONENT */}
       <div style={{ display: 'none' }}>
         <div ref={componentRef}>
             <InvoiceTicket 
                 cart={cart} subtotal={subtotal} tax={gstTotal} discount={discount + (redeemApplied ? 100 : 0)} total={finalNetPay}
-                savings={savings} billNo={billNoForPrinting} payMethod={paymentMode} cash={splitCash} upi={splitUpi}
+                savings={totalSavings} billNo={billNoForPrinting} payMethod={paymentMode} cash={splitCash} upi={splitUpi}
                 custName={customerName} custPhone={customerPhone} 
                 pointsBalance={customerData?.points || 0} pointsEarned={customerPhone ? earnedPoints : 0} redeemUsed={redeemApplied}
             />

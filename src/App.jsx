@@ -4,6 +4,7 @@ import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
 import Layout from './components/Layout/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
+import JsonImporter from './pages/Admin/JsonImporter';
 
 // Pages
 import POS from './pages/POS/POS';
@@ -31,6 +32,7 @@ function App() {
               <Route path="customers" element={<Customers />} />
                 <Route path="logs" element={<Logs />} />
                 <Route path="admin" element={<Inventory />} />
+                <Route path="admin/importer" element={<JsonImporter />} />
                 <Route path="admin/add-product" element={<AddProduct />} />
                 <Route path="admin/edit-product/:id" element={<AddProduct />} />
                 <Route path="admin/bulk-add" element={<BulkAdd />} />
