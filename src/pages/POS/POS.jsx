@@ -24,7 +24,6 @@ const POS = () => {
   const [splitUpi, setSplitUpi] = useState('');
   const [showDetails, setShowDetails] = useState(true);
   
-  // State for the ticket to read the ID
   const [billNoForPrinting, setBillNoForPrinting] = useState('');
 
   // Loyalty States
@@ -42,15 +41,15 @@ const POS = () => {
     subtotal, gstTotal, discount, netPay 
   } = useContext(CartContext);
 
-  // 1. Fetch Products
+  // 1. Fetch Products (Public Sync)
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
       setDbProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    }, (err) => console.log("Product sync active."));
+    }, (err) => console.log("Database connection active."));
     return () => unsubscribe();
   }, []);
 
-  // 2. Loyalty Search
+  // 2. Loyalty Search Logic
   const searchCustomer = async () => {
     if(!customerPhone) return;
     setRedeemApplied(false);
@@ -82,7 +81,6 @@ const POS = () => {
     setCustomName(''); setCustomAmount('');
   };
 
-  // Logic: Earn 2 points if bill > ₹300
   const earnedPoints = netPay >= 300 ? 2 : 0;
   const finalNetPay = Number(redeemApplied ? (netPay - 100) : netPay); 
   const totalSavings = cart.reduce((acc, item) => acc + ((Number(item.mrp || 0) - Number(item.salePrice || 0)) * item.qty), 0) + discount + (redeemApplied ? 100 : 0);
@@ -90,89 +88,113 @@ const POS = () => {
   // 3. Printing Setup
   const handlePrint = useReactToPrint({
     contentRef: componentRef,
+    onAfterPrint: () => {
+        // Requirement: DO NOT clear the cart automatically. 
+        // We only clear the temporary bill ID used for the ticket.
+        setBillNoForPrinting('');
+    },
   });
 
-  // 4. THE MASTER FUNCTION (Save to DB, then Print. DO NOT CLEAR CART)
+  // 4. THE MASTER FUNCTION (Database Sync)
   const handleProcessPayment = async () => {
     if (cart.length === 0) return;
 
-    // A. Validation
     if (paymentMode === 'SPLIT') {
-        const totalEntered = Number(splitCash) + Number(splitUpi);
-        if (totalEntered.toFixed(2) !== finalNetPay.toFixed(2)) {
-            alert(`Split mismatch: Entered ₹${totalEntered}, Expected ₹${finalNetPay.toFixed(2)}`);
+        const totalSplit = Number(splitCash) + Number(splitUpi);
+        if (totalSplit.toFixed(2) !== finalNetPay.toFixed(2)) {
+            alert(`Split mismatch: Entered ₹${totalSplit}, Expected ₹${finalNetPay.toFixed(2)}`);
             return;
         }
     }
 
-    // B. Generate Bill ID
     const generatedID = `INV-${Math.floor(100000 + Math.random() * 900000)}`;
 
     try {
       const batch = writeBatch(db);
       
-      // C. Customer Logic
       if (customerPhone && customerPhone.trim() !== "") {
-          const custQuery = query(collection(db, 'customers'), where('phone', '==', customerPhone));
-          const custSnap = await getDocs(custQuery);
-          
-          if (custSnap.empty) {
+          if (customerData?.isNew) {
               const newCustRef = doc(collection(db, "customers"));
-              batch.set(newCustRef, { name: customerName || "Guest", phone: customerPhone, points: Number(earnedPoints), createdAt: serverTimestamp() });
-          } else {
-              const existingCustId = custSnap.docs[0].id;
+              batch.set(newCustRef, { 
+                name: customerName || "Guest", 
+                phone: customerPhone, 
+                points: Number(earnedPoints), 
+                createdAt: serverTimestamp() 
+              });
+          } else if (customerData?.id) {
               let pChange = Number(earnedPoints) - (redeemApplied ? 100 : 0);
-              batch.update(doc(db, 'customers', existingCustId), { points: increment(pChange) });
+              batch.update(doc(db, 'customers', customerData.id), { points: increment(pChange) });
           }
       }
 
-      // D. Save Bill Record
       const billRef = doc(collection(db, 'bills'));
       batch.set(billRef, {
-        billNo: generatedID, items: cart, subtotal: Number(subtotal), gstTotal: Number(gstTotal), 
-        discount: Number(discount) + (redeemApplied ? 100 : 0), netPay: Number(finalNetPay), paymentMode, 
-        timestamp: serverTimestamp(), customer: { name: (customerPhone ? (customerName || 'Customer') : 'Guest'), phone: customerPhone || 'N/A' },
-        earnedPoints: customerPhone ? Number(earnedPoints) : 0, redeemUsed: redeemApplied
+        billNo: generatedID,
+        items: cart, 
+        subtotal: Number(subtotal), 
+        gstTotal: Number(gstTotal), 
+        discount: Number(discount) + (redeemApplied ? 100 : 0), 
+        netPay: Number(finalNetPay), 
+        paymentMode, 
+        timestamp: serverTimestamp(),
+        customer: { name: (customerPhone ? (customerName || 'Customer') : 'Guest'), phone: customerPhone || 'N/A' },
+        earnedPoints: customerPhone ? Number(earnedPoints) : 0,
+        redeemUsed: redeemApplied
       });
 
-      // E. Update Stock
       cart.forEach(item => {
-        if (!item.isCustom) batch.update(doc(db, 'products', item.id), { stock: increment(-Number(item.qty)) });
+        if (!item.isCustom) {
+            batch.update(doc(db, 'products', item.id), { stock: increment(-Number(item.qty)) });
+        }
       });
 
-      // F. Commit to Firestore
       await batch.commit();
-
-      // G. Trigger Print
+      
       setBillNoForPrinting(generatedID);
       setTimeout(() => {
           handlePrint();
-      }, 400);
+      }, 500);
 
     } catch (e) { 
       console.error("FIREBASE FAIL:", e);
-      alert("Database error: Transaction aborted. Check internet connection.");
+      alert("Database error: Transaction aborted. Please check internet connection.");
     }
   };
 
-  const filteredProducts = dbProducts.filter(p => {
-    const s = searchTerm.toLowerCase();
-    return p.name?.toLowerCase().includes(s) || p.category?.toLowerCase().includes(s) || p.sku?.toLowerCase().includes(s);
-  });
+  // --- WEIGHT-BASED SORTING LOGIC ---
+  const extractWeight = (name) => {
+    // Regex to find numbers followed by g, kg, ml, or l
+    const match = name.match(/(\d+)\s*(g|kg|ml|l)/i);
+    if (match) {
+      let value = parseInt(match[1]);
+      const unit = match[2].toLowerCase();
+      // Normalize kg/l to grams/ml for accurate comparison
+      if (unit === 'kg' || unit === 'l') value *= 1000;
+      return value;
+    }
+    return 999999; // Items without weight go to the end
+  };
+
+  const filteredProducts = dbProducts
+    .filter(p => {
+      const s = searchTerm.toLowerCase();
+      return p.name?.toLowerCase().includes(s) || p.category?.toLowerCase().includes(s) || p.sku?.toLowerCase().includes(s);
+    })
+    .sort((a, b) => extractWeight(a.name) - extractWeight(b.name));
 
   const balanceAmount = amtReceived ? (Number(amtReceived) - finalNetPay).toFixed(2) : "0.00";
 
   return (
-    <div className={styles.posContainer}>
+    <div className={styles.posContainer} style={{ fontSize: '16px' }}>
       <div className={styles.leftPanel}>
         <div className={styles.searchBar}>
-          <FiSearch size={18} /><input type="text" placeholder="Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          <FiSearch size={22} /><input type="text" style={{ fontSize: '18px' }} placeholder="Search item, category, SKU..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
         
         <div className={styles.customItemRow}>
-          <div className={styles.inputGroup}><label>Name</label><input value={customName} onChange={(e) => setCustomName(e.target.value)} /></div>
-          <div className={styles.inputGroup} style={{flex: '0 0 100px'}}><label>Amt</label><input type="number" value={customAmount} onChange={(e) => setCustomAmount(e.target.value)} /></div>
-          <button className={styles.addBtn} onClick={handleAddCustomItem}>+ ADD</button>
+          <div className={styles.inputGroup}><label style={{fontSize: '12px'}}>Item Name</label><input style={{fontSize: '16px'}} value={customName} onChange={(e) => setCustomName(e.target.value)} /></div>
+          <div className={styles.inputGroup} style={{flex: '0 0 120px'}}><label style={{fontSize: '12px'}}>Amount</label><input style={{fontSize: '16px'}} type="number" value={customAmount} onChange={(e) => setCustomAmount(e.target.value)} /></div>
+          <button className={styles.addBtn} style={{fontSize: '16px'}} onClick={handleAddCustomItem}>+ ADD</button>
         </div>
 
         <div className={styles.itemsGrid}>
@@ -180,11 +202,11 @@ const POS = () => {
              const inCart = cart.find(c => c.id === product.id);
              return (
                <div key={product.id} className={styles.itemCard} onClick={() => addToCart(product)}>
-                  <span className={styles.categoryBadge}>{product.category}</span>
-                  {inCart && <div className={styles.addedBadge}>{inCart.qty}</div>}
-                  <h3 className={styles.itemName}>{product.name}</h3>
-                  <div className={styles.priceRow}><span>₹{Number(product.salePrice).toFixed(2)}</span></div>
-                  <div className={styles.stockGst}><span>Stock: {product.stock}</span><span>GST: {product.gst || 0}%</span></div>
+                  <span className={styles.categoryBadge} style={{fontSize: '12px'}}>{product.category}</span>
+                  {inCart && <div className={styles.addedBadge} style={{width: '25px', height:'25px', fontSize:'14px'}}>{inCart.qty}</div>}
+                  <h3 className={styles.itemName} style={{fontSize: '18px'}}>{product.name}</h3>
+                  <div className={styles.priceRow} style={{fontSize: '20px'}}><span>₹{Number(product.salePrice).toFixed(2)}</span></div>
+                  <div className={styles.stockGst} style={{fontSize: '14px'}}><span>Stock: {product.stock}</span><span>GST: {product.gst || 0}%</span></div>
                </div>
              )
            })}
@@ -193,26 +215,25 @@ const POS = () => {
 
       <div className={styles.rightPanel}>
         <div className={styles.loyaltyCard}>
-          <div className={styles.loyaltyHeader}><FiUser /> CUSTOMER LOYALTY</div>
+          <div className={styles.loyaltyHeader} style={{fontSize: '14px'}}><FiUser /> CUSTOMER LOYALTY</div>
           <div className={styles.loyaltyInput}>
-            <input type="text" placeholder="Phone" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
-            <button onClick={searchCustomer} style={{background: '#e2e8f0', border:'none', padding:'10px', borderRadius:'6px'}}><FiSearch /></button>
+            <input type="text" style={{fontSize: '16px'}} placeholder="Enter Mobile No..." value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
+            <button onClick={searchCustomer} style={{background: '#e2e8f0', border:'none', padding:'10px', borderRadius:'6px'}}><FiSearch size={20}/></button>
           </div>
-          <input type="text" placeholder="Name" className={styles.fullInput} value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
+          <input type="text" style={{fontSize: '16px'}} placeholder="Name" className={styles.fullInput} value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
           
-          <div style={{marginTop: '10px', fontSize: '11px', borderTop: '1px solid #eee', paddingTop: '8px'}}>
+          <div style={{marginTop: '10px', fontSize: '13px', borderTop: '1px solid #eee', paddingTop: '8px'}}>
              <div style={{display:'flex', justifyContent:'space-between'}}>
-                <span>Earnable Points:</span>
-                <strong style={{color: customerPhone ? '#16a34a' : '#94a3b8'}}>{customerPhone ? `+${earnedPoints}` : 'Add Phone to Earn'}</strong>
+                <span>Points Earnable:</span>
+                <strong style={{color: customerPhone ? '#16a34a' : '#94a3b8', fontSize:'15px'}}>{customerPhone ? `+${earnedPoints}` : 'Add Phone to Earn'}</strong>
              </div>
              {customerData && !customerData.isNew && (
                 <div style={{marginTop: '6px', padding: '8px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0'}}>
                     <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                        <span>Balance: <strong>{customerData.points}</strong></span>
-                        {redeemApplied && <span style={{color:'#10b981', display:'flex', alignItems:'center', gap:'2px'}}><FiCheckCircle /> Redeemed</span>}
+                        <span>Balance: <strong style={{fontSize:'16px'}}>{customerData.points}</strong></span>
                     </div>
                     {customerData.points >= 100 && (
-                        <button onClick={() => setRedeemApplied(!redeemApplied)} style={{width:'100%', marginTop:'8px', padding:'6px', background: redeemApplied ? '#ef4444' : '#0f172a', color:'white', borderRadius:'6px', cursor:'pointer', border:'none', fontSize:'11px', fontWeight:'700'}}>
+                        <button onClick={() => setRedeemApplied(!redeemApplied)} style={{width:'100%', marginTop:'8px', padding:'10px', background: redeemApplied ? '#ef4444' : '#0f172a', color:'white', borderRadius:'6px', cursor:'pointer', border:'none', fontSize:'13px', fontWeight:'700'}}>
                             {redeemApplied ? "CANCEL REDEEM" : "REDEEM 100 POINTS (₹100 OFF)"}
                         </button>
                     )}
@@ -221,18 +242,25 @@ const POS = () => {
           </div>
         </div>
 
-        <div className={styles.cartHeader}>CART ITEMS ({cart.length}) <span className={styles.clearBtn} onClick={clearCart}>CLEAR CART</span></div>
+        <div className={styles.cartHeader} style={{fontSize: '14px'}}>CART ITEMS ({cart.length}) <span className={styles.clearBtn} onClick={clearCart}>CLEAR CART</span></div>
         <div className={styles.cartList}>
           {cart.map(item => (
             <div key={item.id} className={styles.cartItemCard}>
               <div style={{display:'flex', justifyContent:'space-between'}}>
-                <strong style={{fontSize:'13px'}}>{item.name}</strong>
-                <FiX style={{cursor: 'pointer', color: '#94a3b8'}} onClick={()=>removeFromCart(item.id)}/>
+                <strong style={{fontSize: '16px'}}>{item.name}</strong>
+                <FiX style={{cursor: 'pointer', color: '#94a3b8'}} size={20} onClick={()=>removeFromCart(item.id)}/>
               </div>
-              <div className={styles.cartItemActions}>
-                <div className={styles.qtyBox}><button onClick={()=>updateQuantity(item.id,-1)}>-</button><span>{item.qty}</span><button onClick={()=>updateQuantity(item.id,1)}>+</button></div>
-                <div className={styles.discBox}><label>DISC%</label><input type="number" value={item.discountPercent} onChange={(e)=>updateItemDiscount(item.id,e.target.value)}/></div>
-                <div style={{fontWeight:'800', fontSize:'14px'}}>₹{(item.salePrice * item.qty * (1 - item.discountPercent/100)).toFixed(2)}</div>
+              <div className={styles.cartItemActions} style={{marginTop: '15px'}}>
+                <div className={styles.qtyBox}>
+                    <button style={{fontSize: '18px'}} onClick={()=>updateQuantity(item.id,-1)}>-</button>
+                    <span style={{fontSize: '16px'}}>{item.qty}</span>
+                    <button style={{fontSize: '18px'}} onClick={()=>updateQuantity(item.id,1)}>+</button>
+                </div>
+                <div className={styles.discBox}>
+                    <label style={{fontSize: '10px'}}>DISC%</label>
+                    <input type="number" style={{fontSize: '14px', width: '60px'}} value={item.discountPercent} onChange={(e)=>updateItemDiscount(item.id,e.target.value)}/>
+                </div>
+                <div style={{fontWeight:'800', fontSize: '18px'}}>₹{(item.salePrice * item.qty * (1 - item.discountPercent/100)).toFixed(2)}</div>
               </div>
             </div>
           ))}
@@ -240,43 +268,46 @@ const POS = () => {
 
         <div className={styles.paymentFooter}>
           <div className={styles.collapsibleHeader} onClick={() => setShowDetails(!showDetails)}>
-            <strong style={{fontSize:'14px'}}>NET PAY: ₹{finalNetPay.toFixed(2)}</strong>
-            <div className={`${styles.arrowIcon} ${showDetails ? styles.arrowRotate : ''}`}><FiChevronUp size={18}/></div>
+            <strong style={{fontSize:'18px'}}>NET PAY: ₹{finalNetPay.toFixed(2)}</strong>
+            <div className={`${styles.arrowIcon} ${showDetails ? styles.arrowRotate : ''}`}><FiChevronUp size={22}/></div>
           </div>
 
           <div className={`${styles.footerContent} ${showDetails ? styles.expandedContent : ''}`}>
             <div className={styles.summarySection}>
-                <div className={styles.totalRow}><span>Subtotal</span><span>₹{subtotal.toFixed(2)}</span></div>
-                <div className={styles.totalRow}><span>GST Tax</span><span>₹{gstTotal.toFixed(2)}</span></div>
-                <div className={styles.totalRow}><span>Discounts</span><span>- ₹{(discount + (redeemApplied ? 100 : 0)).toFixed(2)}</span></div>
+                <div className={styles.totalRow} style={{fontSize: '14px'}}><span>Subtotal</span><span>₹{subtotal.toFixed(2)}</span></div>
+                <div className={styles.totalRow} style={{fontSize: '14px'}}><span>GST Tax</span><span>₹{gstTotal.toFixed(2)}</span></div>
+                <div className={styles.totalRow} style={{fontSize: '14px'}}><span>Discounts</span><span>- ₹{(discount + (redeemApplied ? 100 : 0)).toFixed(2)}</span></div>
             </div>
             <div className={styles.balanceBox}>
-              <div className={styles.inputGroup}><label style={{fontSize: '9px'}}>AMT RECEIVED (₹)</label>
-                <input type="number" placeholder="Enter cash..." value={amtReceived} onChange={(e) => setAmtReceived(e.target.value)} />
+              <div className={styles.inputGroup}><label style={{fontSize: '10px'}}>AMT RECEIVED (₹)</label>
+                <input type="number" style={{fontSize: '18px'}} placeholder="Enter cash..." value={amtReceived} onChange={(e) => setAmtReceived(e.target.value)} />
               </div>
-              <div className={styles.balanceResult}><label style={{fontSize: '9px'}}>CHANGE</label><strong style={{color:'#10b981', fontSize: '14px'}}>₹{(Number(amtReceived) - finalNetPay).toFixed(2)}</strong></div>
+              <div className={styles.balanceResult}>
+                <label style={{fontSize: '10px'}}>CHANGE</label>
+                <strong style={{color:'#10b981', fontSize: '20px'}}>₹{(Number(amtReceived) - finalNetPay).toFixed(2)}</strong>
+              </div>
             </div>
 
             {paymentMode === 'SPLIT' && (
               <div className={styles.splitBreakdown}>
                 <div className={styles.splitInputs}>
-                  <div className={styles.inputGroup}><label>CASH</label><input type="number" value={splitCash} onChange={(e)=>setSplitCash(e.target.value)}/></div>
-                  <div className={styles.inputGroup}><label>UPI</label><input type="number" value={splitUpi} onChange={(e)=>setSplitUpi(e.target.value)}/></div>
+                  <div className={styles.inputGroup}><label style={{fontSize:'10px'}}>CASH</label><input type="number" style={{fontSize:'16px'}} value={splitCash} onChange={(e)=>setSplitCash(e.target.value)}/></div>
+                  <div className={styles.inputGroup}><label style={{fontSize:'10px'}}>UPI</label><input type="number" style={{fontSize:'16px'}} value={splitUpi} onChange={(e)=>setSplitUpi(e.target.value)}/></div>
                 </div>
-                <div className={styles.remaining}>REMAINING: <span>₹{(finalNetPay - (Number(splitCash)+Number(splitUpi))).toFixed(2)}</span></div>
+                <div className={styles.remaining} style={{fontSize:'14px'}}>REMAINING: <span style={{fontSize:'16px'}}>₹{(finalNetPay - (Number(splitCash)+Number(splitUpi))).toFixed(2)}</span></div>
               </div>
             )}
 
             <div className={styles.paymentModes}>
-              <button className={paymentMode === 'CASH' ? styles.active : ''} onClick={() => setPaymentMode('CASH')}><BsCashStack size={16}/> CASH</button>
-              <button className={paymentMode === 'UPI' ? styles.active : ''} onClick={() => setPaymentMode('UPI')}><FiSmartphone size={16}/> UPI</button>
-              <button className={paymentMode === 'SPLIT' ? styles.active : ''} onClick={() => setPaymentMode('SPLIT')}><FiCreditCard size={16}/> SPLIT</button>
+              <button className={paymentMode === 'CASH' ? styles.active : ''} onClick={() => setPaymentMode('CASH')}><BsCashStack size={20}/> CASH</button>
+              <button className={paymentMode === 'UPI' ? styles.active : ''} onClick={() => setPaymentMode('UPI')}><FiSmartphone size={20}/> UPI</button>
+              <button className={paymentMode === 'SPLIT' ? styles.active : ''} onClick={() => setPaymentMode('SPLIT')}><FiCreditCard size={20}/> SPLIT</button>
             </div>
           </div>
 
           <div className={styles.actionArea}>
-            <button className={styles.processBtn} onClick={handleProcessPayment} disabled={cart.length === 0}>
-              <FiPrinter size={18} /> PROCESS PAYMENT
+            <button className={styles.processBtn} style={{height: '55px', fontSize: '18px'}} onClick={handleProcessPayment} disabled={cart.length === 0}>
+              <FiPrinter size={22} /> PROCESS PAYMENT
             </button>
           </div>
         </div>
