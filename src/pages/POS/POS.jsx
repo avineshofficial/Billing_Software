@@ -41,7 +41,7 @@ const POS = () => {
     subtotal, gstTotal, discount, netPay 
   } = useContext(CartContext);
 
-  // 1. Fetch Products (Public Sync)
+  // 1. Fetch Products
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
       setDbProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -90,7 +90,6 @@ const POS = () => {
     contentRef: componentRef,
     onAfterPrint: () => {
         // Requirement: DO NOT clear the cart automatically. 
-        // We only clear the temporary bill ID used for the ticket.
         setBillNoForPrinting('');
     },
   });
@@ -113,17 +112,16 @@ const POS = () => {
       const batch = writeBatch(db);
       
       if (customerPhone && customerPhone.trim() !== "") {
-          if (customerData?.isNew) {
+          const custQuery = query(collection(db, 'customers'), where('phone', '==', customerPhone));
+          const custSnap = await getDocs(custQuery);
+          
+          if (custSnap.empty) {
               const newCustRef = doc(collection(db, "customers"));
-              batch.set(newCustRef, { 
-                name: customerName || "Guest", 
-                phone: customerPhone, 
-                points: Number(earnedPoints), 
-                createdAt: serverTimestamp() 
-              });
-          } else if (customerData?.id) {
+              batch.set(newCustRef, { name: customerName || "Guest", phone: customerPhone, points: Number(earnedPoints), createdAt: serverTimestamp() });
+          } else {
+              const existingCustId = custSnap.docs[0].id;
               let pChange = Number(earnedPoints) - (redeemApplied ? 100 : 0);
-              batch.update(doc(db, 'customers', customerData.id), { points: increment(pChange) });
+              batch.update(doc(db, 'customers', existingCustId), { points: increment(pChange) });
           }
       }
 
@@ -163,24 +161,32 @@ const POS = () => {
 
   // --- WEIGHT-BASED SORTING LOGIC ---
   const extractWeight = (name) => {
-    // Regex to find numbers followed by g, kg, ml, or l
     const match = name.match(/(\d+)\s*(g|kg|ml|l)/i);
     if (match) {
       let value = parseInt(match[1]);
       const unit = match[2].toLowerCase();
-      // Normalize kg/l to grams/ml for accurate comparison
       if (unit === 'kg' || unit === 'l') value *= 1000;
       return value;
     }
-    return 999999; // Items without weight go to the end
+    return 999999; 
   };
 
+  // --- ORDER-WISE SORTING LOGIC (Category first, then Weight) ---
   const filteredProducts = dbProducts
     .filter(p => {
       const s = searchTerm.toLowerCase();
       return p.name?.toLowerCase().includes(s) || p.category?.toLowerCase().includes(s) || p.sku?.toLowerCase().includes(s);
     })
-    .sort((a, b) => extractWeight(a.name) - extractWeight(b.name));
+    .sort((a, b) => {
+      // 1. Sort by Category Alphabetically
+      const catA = a.category?.toLowerCase() || "";
+      const catB = b.category?.toLowerCase() || "";
+      if (catA < catB) return -1;
+      if (catA > catB) return 1;
+
+      // 2. If categories are same, Sort by Weight
+      return extractWeight(a.name) - extractWeight(b.name);
+    });
 
   const balanceAmount = amtReceived ? (Number(amtReceived) - finalNetPay).toFixed(2) : "0.00";
 
