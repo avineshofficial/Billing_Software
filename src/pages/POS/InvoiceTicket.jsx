@@ -28,7 +28,7 @@ const InvoiceTicket = forwardRef(({
 
   return (
     <div ref={ref} style={{ 
-      padding: '0px 5px 10px 5px',
+      padding: '0px 10px 15px 10px', 
       width: '250px', // Increased width from 210px to 300px
       fontFamily: "'Courier New', Courier, sans-serif", 
       color: '#000',
@@ -166,8 +166,8 @@ const InvoiceTicket = forwardRef(({
       <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
 
       {/* --- SAVINGS --- */}
-      <div style={{ textAlign: 'center', fontSize: '11px', fontWeight: '900', padding: '2px 0' }}>
-        YOU SAVED ₹{safeSavings.toFixed(2)}
+      <div style={{ textAlign: 'center', fontSize: '15px', fontWeight: '900', background: '#000', color: '#fff', padding: '4px 0' }}>
+        YOU SAVED ₹{totalSavings.toFixed(2)}
       </div>
 
       <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px', fontWeight: 'bold', letterSpacing: '1px' }}>
