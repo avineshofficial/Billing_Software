@@ -8,14 +8,15 @@ const InvoiceTicket = forwardRef(({
   total, 
   billNo, 
   payMethod, 
-  cash = 0, // Default to 0 if not provided
-  upi = 0,  // Default to 0 if not provided
+  cash = 0, 
+  upi = 0,  
   custName,
   custPhone,
   pointsBalance = 0,
   pointsEarned = 0,
   redeemUsed = false
 }, ref) => {
+  // Calculate savings: (MRP - SalePrice) * Qty + Overall Discount
   const totalSavings = cart.reduce((acc, item) => {
     const mrp = Number(item.mrp || item.salePrice || 0);
     const price = Number(item.salePrice || 0);
@@ -27,64 +28,71 @@ const InvoiceTicket = forwardRef(({
 
   return (
     <div ref={ref} style={{ 
-      padding: '0px 5px 10px 5px', 
-      width: '210px', 
+      padding: '0px 10px 15px 10px', 
+      width: '300px', // Increased width from 210px to 300px
       fontFamily: "'Courier New', Courier, sans-serif", 
       color: '#000',
       backgroundColor: '#fff',
-      lineHeight: '1.2',
+      lineHeight: '1.3',
       fontWeight: '900', 
       margin: '0'
     }}>
       <style>{`
         @media print {
-          @page { margin: 0; size: 58mm auto; }
+          @page { margin: 0; size: 80mm auto; } /* Changed page size to 80mm */
           body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; }
         }
       `}</style>
 
-      <h2 style={{ textAlign: 'center', margin: '5px 0 0 0', fontSize: '18px', fontWeight: '900' }}>நெருங்கிய கூட்டாளி</h2>
-      <p style={{ textAlign: 'center', margin: '0', fontSize: '13px', fontWeight: '900' }}>நிறுவனம்</p>
+      {/* --- STORE HEADER (TAMIL) --- */}
+      <h2 style={{ textAlign: 'center', margin: '10px 0 2px 0', fontSize: '22px', fontWeight: '900' }}>நெருங்கிய கூட்டாளி</h2>
+      <p style={{ textAlign: 'center', margin: '0', fontSize: '16px', fontWeight: '900' }}>நிறுவனம்</p>
       
-      <div style={{ textAlign: 'center', fontSize: '9px', fontWeight: '900', marginBottom: '5px' }}>
+      {/* --- STORE ADDRESS --- */}
+      <div style={{ textAlign: 'center', fontSize: '11px', fontWeight: '900', marginBottom: '8px', marginTop: '5px' }}>
         <div>7/39 B FISH MARKET STREET</div>
         <div>PARAMAKUDI - 623707</div>
         <div>PH: 9677794269, 7540038675</div>
-        <div style={{ marginTop: '2px', border: '1px solid #000', display: 'inline-block', padding: '1px 4px' }}>
+        <div style={{ marginTop: '5px', border: '1.5px solid #000', display: 'inline-block', padding: '2px 8px' }}>
           GST: 33QEQPS8844G1ZG
         </div>
       </div>
 
-      <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
+      <div style={{ borderBottom: '2px dashed #000', margin: '6px 0' }}></div>
       
-      <div style={{ fontSize: '10px', fontWeight: '900' }}>
+      {/* --- BILL INFO --- */}
+      <div style={{ fontSize: '12px', fontWeight: '900' }}>
          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span>INV:#{billNo || "0"}</span>
             <span>{new Date().toLocaleDateString()}</span>
          </div>
-         <div>TIME:{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+         <div style={{ marginTop: '2px' }}>
+            TIME:{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+         </div>
       </div>
 
+      {/* --- CUSTOMER INFO SECTION --- */}
       {hasCustomer && (
         <>
-          <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
-          <div style={{ fontSize: '10px', fontWeight: '900' }}>
-            <div>CUST: {custName || 'VALUED CUSTOMER'}</div>
-            <div>PH  : {custPhone}</div>
+          <div style={{ borderBottom: '1px dashed #000', margin: '6px 0' }}></div>
+          <div style={{ fontSize: '12px', fontWeight: '900' }}>
+            <div style={{ textTransform: 'uppercase' }}>CUST: {custName || 'VALUED CUSTOMER'}</div>
+            <div style={{ marginTop: '2px' }}>PH  : {custPhone}</div>
           </div>
         </>
       )}
       
-      <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
+      <div style={{ borderBottom: '2px solid #000', margin: '8px 0' }}></div>
       
-      <table style={{ width: '100%', fontSize: '9px', borderCollapse: 'collapse', fontWeight: '900', tableLayout: 'fixed' }}>
+      {/* --- ITEMS TABLE --- */}
+      <table style={{ width: '100%', fontSize: '11px', borderCollapse: 'collapse', fontWeight: '900', tableLayout: 'fixed' }}>
         <thead>
-          <tr style={{ borderBottom: '1.5px solid #000' }}>
-            <th align="left" style={{ width: '40%' }}>ITEM</th>
-            <th align="right" style={{ width: '18%' }}>MRP</th>
-            <th align="right" style={{ width: '18%' }}>PRC</th>
-            <th align="center" style={{ width: '8%' }}>Q</th>
-            <th align="right" style={{ width: '16%' }}>TOT</th>
+          <tr style={{ borderBottom: '2px solid #000' }}>
+            <th align="left" style={{ width: '40%', paddingBottom: '5px' }}>ITEM</th>
+            <th align="right" style={{ width: '18%', paddingBottom: '5px' }}>MRP</th>
+            <th align="right" style={{ width: '18%', paddingBottom: '5px' }}>PRC</th>
+            <th align="center" style={{ width: '10%', paddingBottom: '5px' }}>Q</th>
+            <th align="right" style={{ width: '14%', paddingBottom: '5px' }}>TOT</th>
           </tr>
         </thead>
         <tbody>
@@ -95,66 +103,80 @@ const InvoiceTicket = forwardRef(({
             const itemLineTotal = (price * qty) - (qty * price * (disc / 100));
             return (
               <tr key={index}>
-                <td style={{ padding: '4px 0', textTransform: 'uppercase', fontSize: '9px', wordBreak: 'break-all' }}>{item.name}</td>
-                <td align="right">{item.mrp || item.salePrice}</td>
-                <td align="right">{item.salePrice}</td>
-                <td align="center">{item.qty}</td>
-                <td align="right">{itemLineTotal.toFixed(0)}</td>
+                <td style={{ padding: '6px 0', textTransform: 'uppercase', fontSize: '10px', wordBreak: 'break-all', verticalAlign: 'top' }}>
+                    {item.name}
+                </td>
+                <td align="right" style={{ verticalAlign: 'top', paddingTop: '6px' }}>{item.mrp || item.salePrice}</td>
+                <td align="right" style={{ verticalAlign: 'top', paddingTop: '6px' }}>{item.salePrice}</td>
+                <td align="center" style={{ verticalAlign: 'top', paddingTop: '6px' }}>{item.qty}</td>
+                <td align="right" style={{ verticalAlign: 'top', paddingTop: '6px' }}>{itemLineTotal.toFixed(0)}</td>
               </tr>
             );
           })}
         </tbody>
       </table>
 
-      <div style={{ borderBottom: '1px dashed #000', margin: '5px 0' }}></div>
+      <div style={{ borderBottom: '2px dashed #000', margin: '8px 0' }}></div>
       
-      <div style={{ fontSize: '11px', fontWeight: '900' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span>Subtotal:</span><span>₹{Number(subtotal).toFixed(2)}</span>
+      {/* --- TOTALS --- */}
+      <div style={{ fontSize: '13px', fontWeight: '900' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+          <span>SUBTOTAL:</span><span>₹{Number(subtotal).toFixed(2)}</span>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span>GST Tax:</span><span>₹{Number(tax).toFixed(2)}</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+          <span>GST TAX:</span><span>₹{Number(tax).toFixed(2)}</span>
         </div>
-        <div style={{ borderTop: '2.5px solid #000', marginTop: '5px', paddingTop: '3px', display: 'flex', justifyContent: 'space-between', fontSize: '15px' }}>
+        <div style={{ borderTop: '3px solid #000', marginTop: '8px', paddingTop: '5px', display: 'flex', justifyContent: 'space-between', fontSize: '18px' }}>
           <span>NET PAYABLE:</span><span>₹{Number(total).toFixed(2)}</span>
         </div>
       </div>
 
-      <div style={{ borderBottom: '1px dashed #000', margin: '6px 0' }}></div>
-      <div style={{ fontSize: '10px', fontWeight: '900' }}>
+      <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
+      
+      {/* --- PAYMENT METHOD --- */}
+      <div style={{ fontSize: '12px', fontWeight: '900' }}>
         <div>MODE: {payMethod?.toUpperCase()}</div>
-        {/* --- SPLIT METHOD FIX --- */}
         {payMethod === "SPLIT" && (
-          <div style={{ marginTop: '3px', borderLeft: '3px solid #000', paddingLeft: '5px' }}>
+          <div style={{ marginTop: '5px', borderLeft: '4px solid #000', paddingLeft: '8px', marginLeft: '5px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span>CASH:</span><span>₹{Number(cash).toFixed(2)}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2px' }}>
               <span>UPI:</span><span>₹{Number(upi).toFixed(2)}</span>
             </div>
           </div>
         )}
       </div>
 
+      {/* --- LOYALTY POINTS SECTION --- */}
       {hasCustomer && (
         <>
-          <div style={{ borderBottom: '1px dashed #000', margin: '6px 0' }}></div>
-          <div style={{ fontSize: '10px', fontWeight: '900' }}>
+          <div style={{ borderBottom: '1px dashed #000', margin: '8px 0' }}></div>
+          <div style={{ fontSize: '12px', fontWeight: '900' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span>POINTS EARNED:</span><span>{pointsEarned}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2px', borderTop: '1px solid #000', paddingTop: '2px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3px', borderTop: '1.5px solid #000', paddingTop: '3px' }}>
               <span>TOTAL BALANCE:</span><span>{isNaN(finalPointsBalance) ? '0' : finalPointsBalance}</span>
             </div>
           </div>
         </>
       )}
 
-      <div style={{ borderBottom: '1px dashed #000', margin: '6px 0' }}></div>
-      <div style={{ textAlign: 'center', fontSize: '13px', fontWeight: '900' }}>
-        You Have Saved ₹{totalSavings.toFixed(2)}
+      <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
+
+      {/* --- SAVINGS --- */}
+      <div style={{ textAlign: 'center', fontSize: '15px', fontWeight: '900', background: '#000', color: '#fff', padding: '4px 0' }}>
+        YOU SAVED ₹{totalSavings.toFixed(2)}
       </div>
-      <p style={{ textAlign: 'center', marginTop: '15px', fontSize: '11px', fontWeight: 'bold' }}>THANK YOU! VISIT AGAIN</p>
+
+      <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px', fontWeight: 'bold', letterSpacing: '1px' }}>
+        THANK YOU! VISIT AGAIN
+      </p>
+      
+      <div style={{ textAlign: 'center', fontSize: '8px', marginTop: '10px', color: '#555' }}>
+        --- Software by SwiftPOS ---
+      </div>
     </div>
   );
 });
