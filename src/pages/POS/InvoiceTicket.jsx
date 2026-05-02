@@ -17,19 +17,20 @@ const InvoiceTicket = forwardRef(({
   pointsEarned,
   redeemUsed
 }, ref) => {
-  // Ensure numeric values to prevent NaN errors
+  // Safe numeric conversions
   const safePointsBalance = Number(pointsBalance) || 0;
   const safePointsEarned = Number(pointsEarned) || 0;
   const safeSavings = Number(savings) || 0;
+  const hasCustomer = custPhone && custPhone !== "N/A" && custPhone !== "";
 
   return (
     <div ref={ref} style={{ 
-      padding: '0px 2px 10px 2px', 
-      width: '195px', // Reduced from 230px to fix right-side overflow
+      padding: '0px', 
+      width: '240px', // Fixed width to prevent right-side overflow on 58mm printers
       fontFamily: "'Courier New', Courier, monospace", 
       color: '#000',
       backgroundColor: '#fff',
-      lineHeight: '1.1',
+      lineHeight: '1.2',
       fontWeight: '900', 
       margin: '0',
       fontSize: '10px'
@@ -43,11 +44,11 @@ const InvoiceTicket = forwardRef(({
       `}</style>
 
       {/* --- STORE HEADER (TAMIL) --- */}
-      <h2 style={{ textAlign: 'center', margin: '5px 0 0 0', fontSize: '15px', fontWeight: '900' }}>நெருங்கிய கூட்டாளி</h2>
-      <p style={{ textAlign: 'center', margin: '0', fontSize: '11px', fontWeight: '900' }}>நிறுவனம்</p>
+      <h2 style={{ textAlign: 'center', margin: '5px 0 0 0', fontSize: '14px', fontWeight: '900' }}>நெருங்கிய கூட்டாளி</h2>
+      <p style={{ textAlign: 'center', margin: '0', fontSize: '10px', fontWeight: '900' }}>நிறுவனம்</p>
       
       {/* --- STORE ADDRESS --- */}
-      <div style={{ textAlign: 'center', fontSize: '8px', fontWeight: '900', marginBottom: '5px', marginTop: '2px' }}>
+      <div style={{ textAlign: 'center', fontSize: '8px', fontWeight: '900', marginBottom: '4px', marginTop: '2px' }}>
         <div>7/39 B FISH MARKET STREET</div>
         <div>PARAMAKUDI - 623707</div>
         <div>PH: 9677794269, 7540038675</div>
@@ -56,7 +57,7 @@ const InvoiceTicket = forwardRef(({
         </div>
       </div>
 
-      <div style={{ borderBottom: '1px dashed #000', margin: '3px 0' }}></div>
+      <div style={{ borderBottom: '1px dashed #000', margin: '2px 0' }}></div>
       
       {/* --- BILL INFO --- */}
       <div style={{ fontSize: '9px', fontWeight: '900' }}>
@@ -68,9 +69,9 @@ const InvoiceTicket = forwardRef(({
       </div>
 
       {/* --- CUSTOMER INFO SECTION --- */}
-      {custPhone && custPhone !== "N/A" && (
+      {hasCustomer && (
         <>
-          <div style={{ borderBottom: '1px dashed #000', margin: '3px 0' }}></div>
+          <div style={{ borderBottom: '1px dashed #000', margin: '2px 0' }}></div>
           <div style={{ fontSize: '9px', fontWeight: '900' }}>
             <div style={{ textTransform: 'uppercase' }}>CUST: {custName || 'CUSTOMER'}</div>
             <div>PH  : {custPhone}</div>
@@ -78,22 +79,21 @@ const InvoiceTicket = forwardRef(({
         </>
       )}
       
-      <div style={{ borderBottom: '1px dashed #000', margin: '3px 0' }}></div>
+      <div style={{ borderBottom: '1px solid #000', margin: '2px 0' }}></div>
       
       {/* --- ITEMS TABLE --- */}
       <table style={{ width: '100%', fontSize: '8px', borderCollapse: 'collapse', fontWeight: '900', tableLayout: 'fixed' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid #000' }}>
-            <th align="left" style={{ width: '38%' }}>ITEM</th>
-            <th align="right" style={{ width: '18%' }}>MRP</th>
+            <th align="left" style={{ width: '35%' }}>ITEM</th>
+            <th align="right" style={{ width: '15%' }}>MRP</th>
             <th align="right" style={{ width: '18%' }}>PRC</th>
-            <th align="center" style={{ width: '10%' }}>Q</th>
-            <th align="right" style={{ width: '16%' }}>TOT</th>
+            <th align="center" style={{ width: '12%' }}>Q</th>
+            <th align="right" style={{ width: '20%' }}>TOT</th>
           </tr>
         </thead>
         <tbody>
           {cart.map((item, index) => {
-            // Price calculation using qty and salePrice
             const itemPrice = Number(item.salePrice || item.price || 0);
             const itemQty = Number(item.qty || item.quantity || 0);
             const itemDisc = Number(item.discountPercent || 0);
@@ -101,7 +101,7 @@ const InvoiceTicket = forwardRef(({
             
             return (
               <tr key={index}>
-                <td style={{ padding: '3px 0', textTransform: 'uppercase', wordBreak: 'break-all' }}>
+                <td style={{ padding: '2px 0', textTransform: 'uppercase', wordBreak: 'break-all' }}>
                   {item.name}
                 </td>
                 <td align="right">{item.mrp || itemPrice}</td>
@@ -114,7 +114,7 @@ const InvoiceTicket = forwardRef(({
         </tbody>
       </table>
 
-      <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
+      <div style={{ borderBottom: '1px solid #000', margin: '2px 0' }}></div>
       
       {/* --- TOTALS --- */}
       <div style={{ fontSize: '10px', fontWeight: '900' }}>
@@ -131,12 +131,12 @@ const InvoiceTicket = forwardRef(({
           </div>
         )}
         
-        <div style={{ borderTop: '1.5px solid #000', marginTop: '3px', paddingTop: '2px', display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+        <div style={{ borderTop: '1.5px solid #000', marginTop: '2px', paddingTop: '2px', display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
           <span>NET PAYABLE:</span><span>₹{Number(total).toFixed(2)}</span>
         </div>
       </div>
 
-      <div style={{ borderBottom: '1px dashed #000', margin: '5px 0' }}></div>
+      <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
 
       {/* --- PAYMENT & BREAKDOWN --- */}
       <div style={{ fontSize: '9px', fontWeight: '900' }}>
@@ -154,7 +154,7 @@ const InvoiceTicket = forwardRef(({
       </div>
 
       {/* --- LOYALTY POINTS SECTION --- */}
-      {custPhone && custPhone !== "N/A" && (
+      {hasCustomer && (
         <>
           <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
           <div style={{ fontSize: '9px', fontWeight: '900' }}>
@@ -173,21 +173,16 @@ const InvoiceTicket = forwardRef(({
         </>
       )}
 
-      <div style={{ borderBottom: '1px dashed #000', margin: '5px 0' }}></div>
+      <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
 
-      {/* --- SAVINGS BAR (Fits fixed width) --- */}
-      <div style={{ 
-        textAlign: 'center', 
-        fontSize: '11px', 
-        fontWeight: '900', 
-        backgroundColor: '#000', 
-        color: '#fff', 
-        padding: '3px 0' 
-      }}>
+      {/* --- SAVINGS SECTION (SHADE REMOVED) --- */}
+      <div style={{ textAlign: 'center', fontSize: '11px', fontWeight: '900', padding: '2px 0' }}>
         YOU SAVED ₹{safeSavings.toFixed(2)}
       </div>
 
-      <p style={{ textAlign: 'center', marginTop: '12px', fontSize: '10px', fontWeight: 'bold' }}>
+      <div style={{ borderBottom: '1px dashed #000', margin: '2px 0' }}></div>
+
+      <p style={{ textAlign: 'center', marginTop: '10px', fontSize: '9px', fontWeight: 'bold' }}>
         THANK YOU! VISIT AGAIN
       </p>
     </div>
