@@ -28,7 +28,7 @@ const InvoiceTicket = forwardRef(({
 
   return (
     <div ref={ref} style={{ 
-      padding: '0px 10px 15px 10px', 
+      padding: '0px 5px 10px 5px',
       width: '250px', // Increased width from 210px to 300px
       fontFamily: "'Courier New', Courier, sans-serif", 
       color: '#000',
