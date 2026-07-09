@@ -31,6 +31,7 @@ const POS = () => {
   const [customerName, setCustomerName] = useState('');
   const [customerData, setCustomerData] = useState(null);
   const [redeemApplied, setRedeemApplied] = useState(false);
+  const [allCustomers, setAllCustomers] = useState([]);
 
   // Custom Item States
   const [customName, setCustomName] = useState('');
@@ -41,29 +42,32 @@ const POS = () => {
     subtotal, gstTotal, discount, netPay 
   } = useContext(CartContext);
 
-  // 1. Fetch Products
+  // 1. Fetch Products & Customers
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
+    const unsubProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
       setDbProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     }, (err) => console.log("Database connection active."));
-    return () => unsubscribe();
+
+    const unsubCustomers = onSnapshot(collection(db, 'customers'), (snapshot) => {
+      setAllCustomers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
+    return () => { unsubProducts(); unsubCustomers(); };
   }, []);
 
-  // 2. Loyalty Search Logic
-  const searchCustomer = async () => {
-    if(!customerPhone) return;
-    setRedeemApplied(false);
-    const q = query(collection(db, 'customers'), where('phone', '==', customerPhone));
-    const snapshot = await getDocs(q);
-    if (!snapshot.empty) {
-        const data = snapshot.docs[0].data();
-        setCustomerData({ id: snapshot.docs[0].id, ...data });
-        setCustomerName(data.name || "");
+  // 2. Loyalty Auto-Populate Logic
+  const handlePhoneChange = (e) => {
+    const val = e.target.value;
+    setCustomerPhone(val);
+    const existing = allCustomers.find(c => c.phone === val);
+    if (existing) {
+      setCustomerData(existing);
+      setCustomerName(existing.name || "");
+      setRedeemApplied(false);
     } else {
-        if(window.confirm("Customer not found. Create new record?")) {
-            setCustomerData({ isNew: true, points: 0 });
-            setCustomerName("");
-        }
+      setCustomerData(null);
+      setCustomerName("");
+      setRedeemApplied(false);
     }
   };
 
@@ -220,35 +224,43 @@ const POS = () => {
       </div>
 
       <div className={styles.rightPanel}>
-        <div className={styles.loyaltyCard}>
-          <div className={styles.loyaltyHeader} style={{fontSize: '14px'}}><FiUser /> CUSTOMER LOYALTY</div>
-          <div className={styles.loyaltyInput}>
-            <input type="text" style={{fontSize: '16px'}} placeholder="Enter Mobile No..." value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
-            <button onClick={searchCustomer} style={{background: '#e2e8f0', border:'none', padding:'10px', borderRadius:'6px'}}><FiSearch size={20}/></button>
+        <div className={styles.loyaltyCard} style={{padding: '12px 16px'}}>
+          <div className={styles.loyaltyHeader} style={{fontSize: '12px', marginBottom: '8px'}}><FiUser /> CUSTOMER</div>
+          <div style={{display: 'flex', gap: '8px'}}>
+            <input 
+              type="text" 
+              list="customer-phones" 
+              placeholder="Mobile No." 
+              value={customerPhone} 
+              onChange={handlePhoneChange} 
+              style={{flex: 1, padding: '8px', fontSize: '13px', border: '1px solid #e2e8f0', borderRadius: '6px', minWidth: 0}} 
+            />
+            <datalist id="customer-phones">
+              {allCustomers.map(c => <option key={c.id} value={c.phone}>{c.name}</option>)}
+            </datalist>
+            <input 
+              type="text" 
+              placeholder="Name" 
+              value={customerName} 
+              onChange={(e) => setCustomerName(e.target.value)} 
+              style={{flex: 1, padding: '8px', fontSize: '13px', border: '1px solid #e2e8f0', borderRadius: '6px', minWidth: 0}} 
+            />
           </div>
-          <input type="text" style={{fontSize: '16px'}} placeholder="Name" className={styles.fullInput} value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
           
-          <div style={{marginTop: '10px', fontSize: '13px', borderTop: '1px solid #eee', paddingTop: '8px'}}>
-             <div style={{display:'flex', justifyContent:'space-between'}}>
-                <span>Points Earnable:</span>
-                <strong style={{color: customerPhone ? '#16a34a' : '#94a3b8', fontSize:'15px'}}>{customerPhone ? `+${earnedPoints}` : 'Add Phone to Earn'}</strong>
-             </div>
+          <div style={{marginTop: '8px', fontSize: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+             <span style={{color: '#64748b'}}>Earn: <strong style={{color: customerPhone ? '#16a34a' : '#94a3b8'}}>{customerPhone ? `+${earnedPoints} pts` : '--'}</strong></span>
              {customerData && !customerData.isNew && (
-                <div style={{marginTop: '6px', padding: '8px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0'}}>
-                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                        <span>Balance: <strong style={{fontSize:'16px'}}>{customerData.points}</strong></span>
-                    </div>
-                    {customerData.points >= 100 && (
-                        <button onClick={() => setRedeemApplied(!redeemApplied)} style={{width:'100%', marginTop:'8px', padding:'10px', background: redeemApplied ? '#ef4444' : '#0f172a', color:'white', borderRadius:'6px', cursor:'pointer', border:'none', fontSize:'13px', fontWeight:'700'}}>
-                            {redeemApplied ? "CANCEL REDEEM" : "REDEEM 100 POINTS (₹100 OFF)"}
-                        </button>
-                    )}
-                </div>
+                <span style={{color: '#0f172a'}}>Bal: <strong>{customerData.points} pts</strong></span>
              )}
           </div>
+          {customerData && !customerData.isNew && customerData.points >= 100 && (
+              <button onClick={() => setRedeemApplied(!redeemApplied)} style={{width:'100%', marginTop:'8px', padding:'8px', background: redeemApplied ? '#ef4444' : '#0f172a', color:'white', borderRadius:'6px', cursor:'pointer', border:'none', fontSize:'12px', fontWeight:'700'}}>
+                  {redeemApplied ? "CANCEL REDEEM" : "REDEEM 100 PTS (₹100 OFF)"}
+              </button>
+          )}
         </div>
 
-        <div className={styles.cartHeader} style={{fontSize: '14px'}}>CART ITEMS ({cart.length}) <span className={styles.clearBtn} onClick={clearCart}>CLEAR CART</span></div>
+        <div className={styles.cartHeader} style={{fontSize: '13px'}}>CART ITEMS ({cart.length}) <span className={styles.clearBtn} onClick={clearCart}>CLEAR CART</span></div>
         <div className={styles.cartList}>
           {cart.map(item => (
             <div key={item.id} className={styles.cartItemCard}>

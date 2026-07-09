@@ -26,6 +26,15 @@ const Reports = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Export Modal States
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportStartDate, setExportStartDate] = useState('');
+  const [exportEndDate, setExportEndDate] = useState('');
+
   // Modal & Edit States
   const [selectedBill, setSelectedBill] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -46,12 +55,15 @@ const Reports = () => {
 
   // --- CSV DOWNLOAD LOGIC ---
   const exportToCSV = () => {
-    if (filteredBills.length === 0) return alert("No filtered data to export.");
+    let toExport = bills;
+    if (exportStartDate) toExport = toExport.filter(b => b.dateObj >= new Date(new Date(exportStartDate).setHours(0,0,0,0)));
+    if (exportEndDate) toExport = toExport.filter(b => b.dateObj <= new Date(new Date(exportEndDate).setHours(23,59,59,999)));
+
+    if (toExport.length === 0) return alert("No data to export for selected dates.");
 
     const headers = ["Date", "Bill No", "Customer Phone", "Payment Mode", "Subtotal", "GST", "Discount", "Net Pay"];
     
-    // Map the FILTERED bills to CSV rows
-    const rows = filteredBills.map(bill => [
+    const rows = toExport.map(bill => [
       `"${bill.dateObj.toLocaleString()}"`,
       bill.displayBillNo,
       bill.customer?.phone || "N/A",
@@ -69,10 +81,11 @@ const Reports = () => {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `SwiftPOS_Report_${new Date().toLocaleDateString()}.csv`);
+    link.setAttribute("download", `SwiftPOS_Report_${exportStartDate || 'All'}_to_${exportEndDate || 'All'}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setShowExportModal(false);
   };
 
   const handlePrint = useReactToPrint({
@@ -146,6 +159,16 @@ const Reports = () => {
     return matchesSearch && matchesDate;
   });
 
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, startDate, endDate, bills.length]);
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentBills = filteredBills.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredBills.length / itemsPerPage);
+
   const getFlowData = () => {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     return Array.from({length: 7}, (_, i) => {
@@ -162,10 +185,38 @@ const Reports = () => {
       <div className={styles.header}>
         <div><h1>Financial Reports</h1><p>Analyze sales and manage transactions.</p></div>
         {/* --- DOWNLOAD BUTTON --- */}
-        <button className={styles.btnDownload} onClick={exportToCSV}>
-          <FiDownload /> DOWNLOAD FILTERED REPORT
+        <button className={styles.btnExport} onClick={() => setShowExportModal(true)}>
+          <FiDownload /> DOWNLOAD REPORT
         </button>
       </div>
+
+      {showExportModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <h3>Export Sales Report</h3>
+              <FiX style={{cursor:'pointer'}} onClick={() => setShowExportModal(false)} />
+            </div>
+            <div className={styles.modalBody}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                <div className={styles.dateGroup}>
+                  <label>Start Date</label>
+                  <input type="date" value={exportStartDate} onChange={(e) => setExportStartDate(e.target.value)} />
+                </div>
+                <div className={styles.dateGroup}>
+                  <label>End Date</label>
+                  <input type="date" value={exportEndDate} onChange={(e) => setExportEndDate(e.target.value)} />
+                </div>
+                <p style={{fontSize: '12px', color: '#64748b'}}>Leave dates empty to download all history.</p>
+              </div>
+            </div>
+            <div className={styles.modalFooter}>
+              <button className={styles.btnCancel} onClick={() => setShowExportModal(false)}>Cancel</button>
+              <button className={styles.btnSave} onClick={exportToCSV}><FiDownload /> Download CSV</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className={styles.cardsGrid}>
         <div className={styles.card}><span className={styles.cardLabel}>TODAY'S INCOME</span><div className={styles.cardValue}>₹{todayIncome.toFixed(2)}</div></div>
@@ -187,7 +238,7 @@ const Reports = () => {
         <table className={styles.reportTable}>
           <thead><tr><th>Date & Time</th><th>Bill No</th><th>Customer</th><th>Amount</th><th>Mode</th><th style={{textAlign:'right'}}>Action</th></tr></thead>
           <tbody>
-            {filteredBills.map(bill => (
+            {currentBills.map(bill => (
               <tr key={bill.id}>
                 <td>{bill.dateObj.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</td>
                 <td style={{fontWeight:'800', color: '#0f172a'}}>{bill.displayBillNo}</td>
@@ -197,8 +248,29 @@ const Reports = () => {
                 <td style={{textAlign:'right'}}><FiEye style={{cursor:'pointer', color:'#64748b'}} onClick={() => { setSelectedBill(bill); setIsEditing(false); }} /></td>
               </tr>
             ))}
+            {currentBills.length === 0 && (
+              <tr><td colSpan="6" style={{textAlign:'center', padding: '30px', color: '#64748b'}}>No bills found for the selected filters.</td></tr>
+            )}
           </tbody>
         </table>
+        
+        {/* Pagination Controls */}
+        <div className={styles.paginationContainer}>
+          <div className={styles.itemsPerPage}>
+            <label>Rows per page:</label>
+            <select value={itemsPerPage} onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
+          <div className={styles.pagination}>
+            <button onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1}>Previous</button>
+            <span>Page {currentPage} of {totalPages || 1}</span>
+            <button onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages || totalPages === 0}>Next</button>
+          </div>
+        </div>
       </div>
 
       <div className={styles.chartCard}>
