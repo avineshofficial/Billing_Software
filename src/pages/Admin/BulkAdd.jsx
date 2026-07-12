@@ -11,9 +11,9 @@ const BulkAdd = () => {
   
   // Initial state with 3 empty rows
   const [rows, setRows] = useState([
-    { id: 1, name: '', sku: '', category: 'General', mrp: '', salePrice: '', stock: '', gst: '0' },
-    { id: 2, name: '', sku: '', category: 'General', mrp: '', salePrice: '', stock: '', gst: '0' },
-    { id: 3, name: '', sku: '', category: 'General', mrp: '', salePrice: '', stock: '', gst: '0' },
+    { id: 1, name: '', sku: '', category: 'General', purchasePrice: '', mrp: '', salePrice: '', stock: '', gst: '0' },
+    { id: 2, name: '', sku: '', category: 'General', purchasePrice: '', mrp: '', salePrice: '', stock: '', gst: '0' },
+    { id: 3, name: '', sku: '', category: 'General', purchasePrice: '', mrp: '', salePrice: '', stock: '', gst: '0' },
   ]);
 
   const addRow = () => {
@@ -22,6 +22,7 @@ const BulkAdd = () => {
         name: '', 
         sku: '', 
         category: 'General', 
+        purchasePrice: '',
         mrp: '', 
         salePrice: '', 
         stock: '', 
@@ -53,6 +54,7 @@ const BulkAdd = () => {
           name: row.name,
           sku: row.sku || `SKU-${Math.floor(100000 + Math.random() * 900000)}`,
           category: row.category || 'General',
+          purchasePrice: Number(row.purchasePrice) || 0,
           mrp: Number(row.mrp) || 0,
           salePrice: Number(row.salePrice) || 0,
           stock: Number(row.stock) || 0,
@@ -86,13 +88,14 @@ const BulkAdd = () => {
         <table className={styles.dataTable}>
           <thead>
             <tr>
-              <th style={{ width: '25%' }}>Product Name*</th>
-              <th style={{ width: '15%' }}>SKU (Opt)</th>
-              <th style={{ width: '15%' }}>Category</th>
+              <th style={{ width: '20%' }}>Product Name*</th>
+              <th style={{ width: '12%' }}>SKU (Opt)</th>
+              <th style={{ width: '12%' }}>Category</th>
+              <th style={{ width: '10%' }}>Purchase</th>
               <th style={{ width: '10%' }}>MRP</th>
               <th style={{ width: '10%' }}>Sale Price</th>
-              <th style={{ width: '10%' }}>Stock</th>
-              <th style={{ width: '10%' }}>GST %</th>
+              <th style={{ width: '8%' }}>Stock</th>
+              <th style={{ width: '8%' }}>GST %</th>
               <th style={{ width: '5%' }}></th>
             </tr>
           </thead>
@@ -117,6 +120,14 @@ const BulkAdd = () => {
                   <input 
                     value={row.category} 
                     onChange={(e) => updateRow(row.id, 'category', e.target.value)} 
+                  />
+                </td>
+                <td>
+                  <input 
+                    type="number" 
+                    placeholder="Cost" 
+                    value={row.purchasePrice} 
+                    onChange={(e) => updateRow(row.id, 'purchasePrice', e.target.value)} 
                   />
                 </td>
                 <td>

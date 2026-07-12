@@ -109,15 +109,16 @@ const Inventory = () => {
       <div className={styles.tableContainer}>
         <table className={styles.dataTable}>
           <thead>
-            <tr><th>Code (SKU)</th><th>Product Name</th><th>MRP</th><th>Sale Price</th><th>Stock</th><th>Actions</th></tr>
+            <tr><th>Code (SKU)</th><th>Product Name</th><th>Purchase Price</th><th>MRP</th><th>Sale Price</th><th>Stock</th><th>Actions</th></tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan="6" style={{textAlign:'center', padding:'30px'}}>Loading...</td></tr>
+              <tr><td colSpan="7" style={{textAlign:'center', padding:'30px'}}>Loading...</td></tr>
             ) : currentProducts.map(p => (
               <tr key={p.id}>
                 <td>{p.sku}</td>
                 <td style={{fontWeight:'700'}}>{p.name}</td>
+                <td>₹{Number(p.purchasePrice || 0).toFixed(2)}</td>
                 <td>₹{Number(p.mrp).toFixed(2)}</td>
                 <td>₹{Number(p.salePrice).toFixed(2)}</td>
                 <td style={{color: p.stock <= 0 ? '#ef4444' : 'inherit', fontWeight: p.stock <= 0 ? '700' : 'normal'}}>{p.stock}</td>
@@ -128,7 +129,7 @@ const Inventory = () => {
               </tr>
             ))}
             {!loading && currentProducts.length === 0 && (
-              <tr><td colSpan="6" style={{textAlign:'center', padding:'30px', color:'#64748b'}}>No products found.</td></tr>
+              <tr><td colSpan="7" style={{textAlign:'center', padding:'30px', color:'#64748b'}}>No products found.</td></tr>
             )}
           </tbody>
         </table>

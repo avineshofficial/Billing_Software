@@ -17,6 +17,7 @@ const AddProduct = () => {
     name: '',
     sku: '',
     category: '', // Manual entry category
+    purchasePrice: '',
     mrp: '',
     salePrice: '',
     stock: '',
@@ -66,6 +67,7 @@ const AddProduct = () => {
         name: formData.name,
         sku: formData.sku || `SKU-${Math.floor(100000 + Math.random() * 900000)}`,
         category: formData.category || 'General',
+        purchasePrice: Number(formData.purchasePrice) || 0,
         mrp: Number(formData.mrp) || 0,
         salePrice: Number(formData.salePrice) || 0,
         stock: Number(formData.stock) || 0,
@@ -153,6 +155,15 @@ const AddProduct = () => {
                 type="number" 
                 value={formData.gst} 
                 onChange={(e) => setFormData({...formData, gst: e.target.value})} 
+              />
+            </div>
+
+            <div className={styles.inputGroup}>
+              <label>Purchase Price (Cost)</label>
+              <input 
+                type="number" 
+                value={formData.purchasePrice || ''} 
+                onChange={(e) => setFormData({...formData, purchasePrice: e.target.value})} 
               />
             </div>
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { 
   FiActivity, FiClock, FiSearch, FiCheckCircle, FiEye, 
-  FiX, FiPrinter, FiMinus, FiPlus, FiCalendar, FiDownload 
+  FiX, FiPrinter, FiMinus, FiPlus, FiCalendar, FiDownload, FiChevronRight
 } from 'react-icons/fi';
 import { db } from '../../services/firebase';
 import { 
@@ -22,9 +22,13 @@ const Reports = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   
-  // --- DATE FILTER STATES ---
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  // Tab State
+  const [activeTab, setActiveTab] = useState('general'); // 'general' | 'profit'
+  
+  // --- DATE FILTER STATES (Default to Today) ---
+  const todayStr = new Date().toISOString().split('T')[0];
+  const [startDate, setStartDate] = useState(todayStr);
+  const [endDate, setEndDate] = useState(todayStr);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -184,10 +188,16 @@ const Reports = () => {
     <div className={styles.container}>
       <div className={styles.header}>
         <div><h1>Financial Reports</h1><p>Analyze sales and manage transactions.</p></div>
-        {/* --- DOWNLOAD BUTTON --- */}
-        <button className={styles.btnExport} onClick={() => setShowExportModal(true)}>
-          <FiDownload /> DOWNLOAD REPORT
-        </button>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+           <div className={styles.tabToggle}>
+              <button className={activeTab === 'general' ? styles.tabActive : styles.tabInactive} onClick={() => setActiveTab('general')}>General</button>
+              <button className={activeTab === 'profit' ? styles.tabActive : styles.tabInactive} onClick={() => setActiveTab('profit')}>Bill Wise Profit</button>
+           </div>
+           {/* --- DOWNLOAD BUTTON --- */}
+           <button className={styles.btnExport} onClick={() => setShowExportModal(true)}>
+             <FiDownload /> DOWNLOAD CSV
+           </button>
+        </div>
       </div>
 
       {showExportModal && (
@@ -218,12 +228,6 @@ const Reports = () => {
         </div>
       )}
 
-      <div className={styles.cardsGrid}>
-        <div className={styles.card}><span className={styles.cardLabel}>TODAY'S INCOME</span><div className={styles.cardValue}>₹{todayIncome.toFixed(2)}</div></div>
-        <div className={styles.card}><span className={styles.cardLabel}>TOTAL LIFETIME SALES</span><div className={styles.cardValue}>₹{totalSalesValue.toFixed(2)}</div></div>
-        <div className={styles.cardDark}><span className={styles.cardLabel}>ANNUAL REVENUE</span><div className={styles.cardValue}>₹{totalSalesValue.toFixed(2)}</div></div>
-      </div>
-
       <div className={styles.filterBar}>
         <div className={styles.dateGroup}><label>From Date</label><input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
         <div className={styles.dateGroup}><label>To Date</label><input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></div>
@@ -231,52 +235,152 @@ const Reports = () => {
         <button className={styles.resetBtn} onClick={() => {setStartDate(''); setEndDate(''); setSearchTerm('');}}>CLEAR</button>
       </div>
 
-      <div className={styles.tableWrapper}>
-        <div style={{padding:'15px', borderBottom:'1px solid #eee'}}>
-            <h2 style={{fontSize:'16px'}}>Filtered Bills ({filteredBills.length})</h2>
-        </div>
-        <table className={styles.reportTable}>
-          <thead><tr><th>Date & Time</th><th>Bill No</th><th>Customer</th><th>Amount</th><th>Mode</th><th style={{textAlign:'right'}}>Action</th></tr></thead>
-          <tbody>
-            {currentBills.map(bill => (
-              <tr key={bill.id}>
-                <td>{bill.dateObj.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</td>
-                <td style={{fontWeight:'800', color: '#0f172a'}}>{bill.displayBillNo}</td>
-                <td>{bill.customer?.phone || "Guest"}</td>
-                <td style={{fontWeight:'800'}}>₹{Number(bill.netPay).toFixed(2)}</td>
-                <td><span className={styles.modeBadge}>{bill.paymentMode}</span></td>
-                <td style={{textAlign:'right'}}><FiEye style={{cursor:'pointer', color:'#64748b'}} onClick={() => { setSelectedBill(bill); setIsEditing(false); }} /></td>
-              </tr>
-            ))}
-            {currentBills.length === 0 && (
-              <tr><td colSpan="6" style={{textAlign:'center', padding: '30px', color: '#64748b'}}>No bills found for the selected filters.</td></tr>
-            )}
-          </tbody>
-        </table>
-        
-        {/* Pagination Controls */}
-        <div className={styles.paginationContainer}>
-          <div className={styles.itemsPerPage}>
-            <label>Rows per page:</label>
-            <select value={itemsPerPage} onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}>
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
+      {activeTab === 'general' ? (
+        <>
+          <div className={styles.cardsGrid}>
+            <div className={styles.card}><span className={styles.cardLabel}>TODAY'S INCOME</span><div className={styles.cardValue}>₹{todayIncome.toFixed(2)}</div></div>
+            <div className={styles.card}><span className={styles.cardLabel}>TOTAL LIFETIME SALES</span><div className={styles.cardValue}>₹{totalSalesValue.toFixed(2)}</div></div>
+            <div className={styles.cardDark}><span className={styles.cardLabel}>ANNUAL REVENUE</span><div className={styles.cardValue}>₹{totalSalesValue.toFixed(2)}</div></div>
           </div>
-          <div className={styles.pagination}>
-            <button onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1}>Previous</button>
-            <span>Page {currentPage} of {totalPages || 1}</span>
-            <button onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages || totalPages === 0}>Next</button>
-          </div>
-        </div>
-      </div>
 
-      <div className={styles.chartCard}>
-        <h3>7-Day Sales Performance</h3>
-        <div style={{ height: '320px' }}><ResponsiveContainer width="100%" height="100%"><BarChart data={getFlowData()}><XAxis dataKey="day" tick={{fontSize:12}} /><Tooltip /><Bar dataKey="sales" fill="#0f172a" /></BarChart></ResponsiveContainer></div>
-      </div>
+          <div className={styles.tableWrapper}>
+            <div style={{padding:'15px', borderBottom:'1px solid #eee'}}>
+                <h2 style={{fontSize:'16px'}}>Filtered Bills ({filteredBills.length})</h2>
+            </div>
+            <table className={styles.reportTable}>
+              <thead><tr><th>Date & Time</th><th>Bill No</th><th>Customer</th><th>Amount</th><th>Mode</th><th style={{textAlign:'right'}}>Action</th></tr></thead>
+              <tbody>
+                {currentBills.map(bill => (
+                  <tr key={bill.id}>
+                    <td>{bill.dateObj.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</td>
+                    <td style={{fontWeight:'800', color: '#0f172a'}}>{bill.displayBillNo}</td>
+                    <td>{bill.customer?.phone || "Guest"}</td>
+                    <td style={{fontWeight:'800'}}>₹{Number(bill.netPay).toFixed(2)}</td>
+                    <td><span className={styles.modeBadge}>{bill.paymentMode}</span></td>
+                    <td style={{textAlign:'right'}}><FiEye style={{cursor:'pointer', color:'#64748b'}} onClick={() => { setSelectedBill(bill); setIsEditing(false); }} /></td>
+                  </tr>
+                ))}
+                {currentBills.length === 0 && (
+                  <tr><td colSpan="6" style={{textAlign:'center', padding: '30px', color: '#64748b'}}>No bills found for the selected filters.</td></tr>
+                )}
+              </tbody>
+            </table>
+            
+            {/* Pagination Controls */}
+            <div className={styles.paginationContainer}>
+              <div className={styles.itemsPerPage}>
+                <label>Rows per page:</label>
+                <select value={itemsPerPage} onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+              <div className={styles.pagination}>
+                <button onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1}>Previous</button>
+                <span>Page {currentPage} of {totalPages || 1}</span>
+                <button onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages || totalPages === 0}>Next</button>
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.chartCard}>
+            <h3>7-Day Sales Performance</h3>
+            <div style={{ height: '320px' }}><ResponsiveContainer width="100%" height="100%"><BarChart data={getFlowData()}><XAxis dataKey="day" tick={{fontSize:12}} /><Tooltip /><Bar dataKey="sales" fill="#0f172a" /></BarChart></ResponsiveContainer></div>
+          </div>
+        </>
+      ) : (
+        <div className={styles.profitViewContainer}>
+            {(() => {
+                const totalSale = filteredBills.reduce((acc, b) => acc + Number(b.netPay || 0), 0);
+                const totalProfit = filteredBills.reduce((acc, b) => {
+                    let cost = 0;
+                    b.items?.forEach(i => {
+                        cost += Number(i.purchasePrice || i.costPrice || 0) * (i.qty || 0);
+                    });
+                    return acc + (Number(b.netPay || 0) - cost);
+                }, 0);
+
+                return (
+                    <>
+                        <div className={styles.profitSummaryGrid}>
+                            <div className={styles.profitCard}>
+                                <span>Total Sale Amount</span>
+                                <div className={styles.saleValue}>₹ {totalSale.toFixed(2)}</div>
+                            </div>
+                            <div className={styles.profitCard}>
+                                <span>Total Profit (+) / Loss (-)</span>
+                                <div className={totalProfit >= 0 ? styles.profitValuePos : styles.profitValueNeg}>
+                                    {totalProfit >= 0 ? '+' : '-'} ₹ {Math.abs(totalProfit).toFixed(2)}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className={styles.profitListWrapper}>
+                            <div className={styles.profitListHeader}>
+                                <div style={{flex: 2}}>Party Name</div>
+                                <div style={{flex: 1, textAlign: 'right'}}>Sale Amount</div>
+                                <div style={{flex: 1, textAlign: 'right'}}>Profit/Loss</div>
+                            </div>
+                            
+                            <div className={styles.profitList}>
+                                {currentBills.map(bill => {
+                                    let cost = 0;
+                                    bill.items?.forEach(i => {
+                                        cost += Number(i.purchasePrice || i.costPrice || 0) * (i.qty || 0);
+                                    });
+                                    const profit = Number(bill.netPay || 0) - cost;
+                                    
+                                    const partyName = bill.customer?.name && bill.customer.name !== 'Guest' 
+                                        ? bill.customer.name 
+                                        : (bill.customer?.phone || 'Guest');
+                                    
+                                    const formattedDate = bill.dateObj.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
+
+                                    return (
+                                        <div key={bill.id} className={styles.profitListItem} onClick={() => { setSelectedBill(bill); setIsEditing(false); }}>
+                                            <div className={styles.partyInfo}>
+                                                <div className={styles.partyName}>{partyName}</div>
+                                                <div className={styles.billMeta}>
+                                                    {formattedDate} • #{bill.displayBillNo}
+                                                </div>
+                                            </div>
+                                            <div className={styles.saleAmt}>₹ {Number(bill.netPay).toFixed(2)}</div>
+                                            <div className={profit >= 0 ? styles.profPos : styles.profNeg}>
+                                                {profit >= 0 ? '+' : '-'} ₹ {Math.abs(profit).toFixed(2)} <FiChevronRight style={{marginLeft: '4px', opacity: 0.5}} />
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                                {currentBills.length === 0 && (
+                                    <div style={{padding: '30px', textAlign: 'center', color: '#64748b'}}>No bills match the selected filters.</div>
+                                )}
+                            </div>
+
+                            {/* Pagination Controls for Profit View */}
+                            <div className={styles.paginationContainer} style={{borderTop: '1px solid #f1f5f9'}}>
+                              <div className={styles.itemsPerPage}>
+                                <label>Rows per page:</label>
+                                <select value={itemsPerPage} onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}>
+                                  <option value={10}>10</option>
+                                  <option value={20}>20</option>
+                                  <option value={50}>50</option>
+                                  <option value={100}>100</option>
+                                </select>
+                              </div>
+                              <div className={styles.pagination}>
+                                <button onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1}>Previous</button>
+                                <span>Page {currentPage} of {totalPages || 1}</span>
+                                <button onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages || totalPages === 0}>Next</button>
+                              </div>
+                            </div>
+                        </div>
+                    </>
+                );
+            })()}
+        </div>
+      )}
 
       {selectedBill && (
         <div className={styles.modalOverlay}>
